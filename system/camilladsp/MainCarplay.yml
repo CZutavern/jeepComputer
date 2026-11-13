@@ -1,0 +1,184 @@
+description: 2-channel CarPlay input expanded to 8 channels with 3-way crossover.
+devices:
+  adjust_period: 3
+  capture:
+    autoconnect_to: null
+    channels: 2
+    labels: null
+    node_description: null
+    node_group_name: null
+    node_name: camilladsp-capture
+    type: PipeWire
+  capture_samplerate: 48000
+  chunksize: 512
+  enable_rate_adjust: true
+  multithreaded: null
+  playback:
+    channels: 8
+    device: hw:CARD=sndrpihifiberry,DEV=0
+    format: S32_LE
+    type: Alsa
+  queuelimit: null
+  rate_measure_interval: null
+  resampler:
+    type: AsyncSinc
+    profile: Fast
+  samplerate: 48000
+  silence_threshold: null
+  silence_timeout: null
+  stop_on_rate_change: null
+  target_level: 768
+  volume_limit: null
+  volume_ramp_time: null
+  worker_threads: null
+filters:
+  hp_140_18:
+    description: null
+    parameters:
+      freq: 140
+      order: 3
+      type: ButterworthHighpass
+    type: BiquadCombo
+  hp_20_12:
+    description: null
+    parameters:
+      freq: 20
+      order: 2
+      type: ButterworthHighpass
+    type: BiquadCombo
+  hp_80_18:
+    description: null
+    parameters:
+      freq: 80
+      order: 3
+      type: ButterworthHighpass
+    type: BiquadCombo
+  lp_2000_18:
+    description: null
+    parameters:
+      freq: 2000
+      order: 3
+      type: ButterworthLowpass
+    type: BiquadCombo
+  lp_80_12:
+    description: null
+    parameters:
+      freq: 80
+      order: 2
+      type: ButterworthLowpass
+    type: BiquadCombo
+mixers:
+  stereo_to_8:
+    channels:
+      in: 2
+      out: 8
+    description: Duplicate stereo input to four stereo output pairs
+    labels:
+    - Channel 1
+    - Channel 2
+    - Channel 3
+    - Channel 4
+    - Channel 5
+    - Channel 6
+    - Channel 7
+    - Channel 8
+    mapping:
+    - dest: 0
+      mute: false
+      sources:
+      - channel: 0
+        gain: 0
+        inverted: false
+        mute: null
+        scale: null
+    - dest: 1
+      mute: false
+      sources:
+      - channel: 1
+        gain: 0
+        inverted: false
+        mute: null
+        scale: null
+    - dest: 2
+      mute: false
+      sources:
+      - channel: 0
+        gain: 0
+        inverted: false
+        mute: null
+        scale: null
+    - dest: 3
+      mute: false
+      sources:
+      - channel: 1
+        gain: 0
+        inverted: false
+        mute: null
+        scale: null
+    - dest: 4
+      mute: false
+      sources:
+      - channel: 0
+        gain: 0
+        inverted: false
+        mute: null
+        scale: null
+    - dest: 5
+      mute: false
+      sources:
+      - channel: 1
+        gain: 0
+        inverted: false
+        mute: null
+        scale: null
+    - dest: 6
+      mute: false
+      sources:
+      - channel: 0
+        gain: 0
+        inverted: false
+        mute: null
+        scale: null
+    - dest: 7
+      mute: false
+      sources:
+      - channel: 1
+        gain: 0
+        inverted: false
+        mute: null
+        scale: null
+pipeline:
+- bypassed: null
+  description: null
+  name: stereo_to_8
+  type: Mixer
+- bypassed: null
+  channels:
+  - 0
+  - 1
+  - 2
+  - 3
+  description: null
+  names:
+  - hp_140_18
+  type: Filter
+- bypassed: null
+  channels:
+  - 4
+  - 5
+  description: null
+  names:
+  - hp_80_18
+  - lp_2000_18
+  type: Filter
+- bypassed: null
+  channels:
+  - 6
+  - 7
+  description: null
+  names:
+  - hp_20_12
+  - lp_80_12
+  type: Filter
+processors: {}
+title: CarPlay Stereo to 8 Channel Crossover

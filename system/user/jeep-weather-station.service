@@ -1,0 +1,9 @@
+[Unit]
+Description=Jeep Computer weather station logger (runs while the Jeep is off, on UPS power)
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/jeep_computer
+ExecStart=/home/pi/jeep_computer/.venv/bin/python -u -m weather.station
+Restart=on-failure
+RestartSec=5

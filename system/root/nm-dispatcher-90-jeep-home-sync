@@ -1,0 +1,6 @@
+#!/bin/sh
+# Jeep Computer: when wlan0 comes online (usually: arrived home), run the
+# backup job - weather snapshot, config commit, GitHub push if set up.
+[ "$1" = "wlan0" ] && [ "$2" = "up" ] || exit 0
+systemctl --user -M pi@ start --no-block jeep-backup.service jeep-stems-sync.service > /dev/null 2>&1
+exit 0

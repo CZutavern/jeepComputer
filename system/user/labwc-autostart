@@ -1,0 +1,10 @@
+wlr-randr --output HDMI-A-2 --transform 180
+
+sleep 0.5
+
+# Dashboard runs as a user service so the UPS monitor can stop it for
+# weather-station mode (Jeep off) and start it again. It restarts itself
+# after a crash; logs go to ~/.cache/jeep_computer/.
+# If the service can't be started, run it directly instead.
+systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+systemctl --user start jeep-dashboard.service || /home/pi/jeep_computer/run_dashboard.sh &

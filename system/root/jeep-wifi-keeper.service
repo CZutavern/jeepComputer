@@ -1,0 +1,13 @@
+[Unit]
+Description=Jeep Computer Wi-Fi keeper (fast reconnect to saved networks)
+Wants=NetworkManager.service
+After=NetworkManager.service
+
+[Service]
+ExecStart=/bin/bash /home/pi/jeep_computer/tools/wifi_keeper.sh
+Restart=always
+RestartSec=10
+Nice=5
+
+[Install]
+WantedBy=multi-user.target

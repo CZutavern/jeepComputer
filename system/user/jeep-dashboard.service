@@ -1,0 +1,14 @@
+[Unit]
+Description=Jeep Computer dashboard (shell + dashboard + CarPlay)
+# Started from labwc's autostart once the desktop session exists; the UPS
+# monitor stops it for weather-station mode and starts it again.
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/jeep_computer
+Environment=QT_QPA_PLATFORMTHEME=qt5ct
+ExecStart=/home/pi/jeep_computer/run_dashboard.sh
+# run_dashboard.sh does its own crash restarts
+Restart=no
+KillMode=control-group
+TimeoutStopSec=15

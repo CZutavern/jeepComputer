@@ -1,0 +1,265 @@
+description: 'CarPlay stereo + 5.1 music to 8 outputs: 3-way crossover with subs.'
+devices:
+  adjust_period: 3
+  capture:
+    autoconnect_to: null
+    channels: 8
+    labels: null
+    node_description: CamillaDSP
+    node_group_name: null
+    node_name: camilladsp-capture
+    type: PipeWire
+  capture_samplerate: 48000
+  chunksize: 512
+  enable_rate_adjust: true
+  multithreaded: null
+  playback:
+    channels: 8
+    device: hw:CARD=sndrpihifiberry,DEV=0
+    format: S32_LE
+    type: Alsa
+  queuelimit: null
+  rate_measure_interval: null
+  resampler:
+    type: AsyncSinc
+    profile: Fast
+  samplerate: 48000
+  silence_threshold: null
+  silence_timeout: null
+  stop_on_rate_change: null
+  target_level: 768
+  volume_limit: null
+  volume_ramp_time: null
+  worker_threads: null
+filters:
+  hp_140_18:
+    description: null
+    parameters:
+      freq: 140
+      order: 3
+      type: ButterworthHighpass
+    type: BiquadCombo
+  hp_20_12:
+    description: null
+    parameters:
+      freq: 20
+      order: 2
+      type: ButterworthHighpass
+    type: BiquadCombo
+  hp_80_18:
+    description: null
+    parameters:
+      freq: 80
+      order: 3
+      type: ButterworthHighpass
+    type: BiquadCombo
+  lp_2000_18:
+    description: null
+    parameters:
+      freq: 2000
+      order: 3
+      type: ButterworthLowpass
+    type: BiquadCombo
+  lp_80_12:
+    description: null
+    parameters:
+      freq: 80
+      order: 2
+      type: ButterworthLowpass
+    type: BiquadCombo
+  safety_limiter:
+    type: Limiter
+    description: Soft clip just below full scale to protect against hard digital clipping
+    parameters:
+      soft_clip: true
+      clip_limit: -1.0
+mixers:
+  carplay_music_to_8:
+    channels:
+      in: 8
+      out: 8
+    description: In 1-2 = CarPlay L/R, In 3-8 = music 5.1 (FL FR FC LFE RL RR). CarPlay
+      feeds every output; music channels go to their matching speakers.
+    labels:
+    - Out 1 L
+    - Out 2 R
+    - Out 3 L
+    - Out 4 R
+    - Out 5 L (mid)
+    - Out 6 R (mid)
+    - Out 7 Sub L
+    - Out 8 Sub R
+    mapping:
+    - dest: 0
+      mute: false
+      sources:
+      - channel: 0
+        gain: 0
+        inverted: false
+        mute: false
+        scale: null
+      - channel: 2
+        gain: 0
+        inverted: false
+        mute: false
+        scale: dB
+    - dest: 1
+      mute: false
+      sources:
+      - channel: 1
+        gain: 0
+        inverted: false
+        mute: false
+        scale: null
+      - channel: 3
+        gain: 0
+        inverted: false
+        mute: false
+        scale: dB
+    - dest: 2
+      mute: false
+      sources:
+      - channel: 0
+        gain: 0.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 4
+        gain: -3.0
+        inverted: false
+        mute: false
+        scale: dB
+    - dest: 3
+      mute: false
+      sources:
+      - channel: 1
+        gain: 0.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 4
+        gain: -3.0
+        inverted: false
+        mute: false
+        scale: dB
+    - dest: 4
+      mute: false
+      sources:
+      - channel: 0
+        gain: 0
+        inverted: false
+        mute: false
+        scale: null
+      - channel: 6
+        gain: 5
+        inverted: false
+        mute: false
+        scale: dB
+    - dest: 5
+      mute: false
+      sources:
+      - channel: 1
+        gain: 0
+        inverted: false
+        mute: false
+        scale: null
+      - channel: 7
+        gain: 5
+        inverted: false
+        mute: false
+        scale: dB
+    - dest: 6
+      mute: false
+      sources:
+      - channel: 0
+        gain: 12
+        inverted: false
+        mute: false
+        scale: null
+      - channel: 2
+        gain: 6
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 6
+        gain: 6
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 5
+        gain: 6.0
+        inverted: false
+        mute: false
+        scale: dB
+    - dest: 7
+      mute: false
+      sources:
+      - channel: 1
+        gain: 12
+        inverted: false
+        mute: false
+        scale: null
+      - channel: 3
+        gain: 6
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 7
+        gain: 6
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 5
+        gain: 6.0
+        inverted: false
+        mute: false
+        scale: dB
+pipeline:
+- bypassed: false
+  description: null
+  name: carplay_music_to_8
+  type: Mixer
+- bypassed: false
+  channels:
+  - 0
+  - 1
+  - 2
+  - 3
+  description: null
+  names:
+  - hp_140_18
+  type: Filter
+- bypassed: false
+  channels:
+  - 4
+  - 5
+  description: null
+  names:
+  - hp_80_18
+  - lp_2000_18
+  type: Filter
+- bypassed: false
+  channels:
+  - 6
+  - 7
+  description: null
+  names:
+  - hp_20_12
+  - lp_80_12
+  type: Filter
+- type: Filter
+  channels:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  names:
+  - safety_limiter
+  bypassed: false
+  description: Clip protection
+processors: {}
+title: CarPlay Stereo to 8 Channel Crossover

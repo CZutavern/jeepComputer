@@ -1,0 +1,13 @@
+[Unit]
+Description=Connect LIVI audio to CamillaDSP
+After=pipewire.service wireplumber.service
+Wants=pipewire.service wireplumber.service
+
+[Service]
+Type=simple
+ExecStart=/home/pi/.local/bin/connect-camilladsp.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

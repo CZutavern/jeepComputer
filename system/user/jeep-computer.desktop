@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Jeep Computer
+Comment=Start the Jeep Computer dashboard and CarPlay
+Exec=/home/pi/jeep_computer/launch.sh
+Icon=/home/pi/jeep_computer/assets/jeep-computer.svg
+Terminal=false
+Categories=Utility;
+StartupNotify=false

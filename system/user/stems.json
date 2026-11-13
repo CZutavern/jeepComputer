@@ -1,0 +1,75 @@
+{
+  "preset": "surround",
+  "master_db": 0.0,
+  "carplay_mute": false,
+  "stems_mute": false,
+  "seat": "passenger",
+  "stems": {
+    "drums": {
+      "x": 0.0,
+      "y": -0.9,
+      "width": 0.9,
+      "spread": 0.45,
+      "level_db": 0.0,
+      "mute": false,
+      "solo": false,
+      "sub": 1.0
+    },
+    "bass": {
+      "x": 0.0,
+      "y": -0.1,
+      "width": 0.3,
+      "spread": 0.6,
+      "level_db": 0.0,
+      "mute": false,
+      "solo": false,
+      "sub": 1.0
+    },
+    "vocals": {
+      "x": 0.0,
+      "y": 1.0,
+      "width": 0.0,
+      "spread": 0.15,
+      "level_db": 0.0,
+      "mute": false,
+      "solo": false,
+      "sub": 1.0
+    },
+    "other": {
+      "x": 0.0,
+      "y": 0.1,
+      "width": 1.0,
+      "spread": 0.6,
+      "level_db": 0.0,
+      "mute": false,
+      "solo": false,
+      "sub": 1.0
+    }
+  },
+  "outputs": {
+    "1": {
+      "gain_db": -5.5
+    },
+    "0": {
+      "gain_db": -5.5
+    },
+    "2": {
+      "gain_db": -3.0
+    },
+    "3": {
+      "gain_db": -3.0
+    },
+    "6": {
+      "gain_db": -3.0
+    },
+    "7": {
+      "gain_db": -3.0
+    },
+    "5": {
+      "gain_db": -6.0
+    },
+    "4": {
+      "gain_db": -6.0
+    }
+  }
+}

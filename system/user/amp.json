@@ -1,0 +1,5 @@
+{
+  "pin": 17,
+  "active_high": true,
+  "idle_off_s": 30
+}

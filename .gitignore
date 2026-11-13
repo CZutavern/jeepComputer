@@ -1,0 +1,29 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs and runtime databases
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# Local configuration and credentials
+*.local
+*.bak
+*.bak-*
+.env
+.env.*
+secrets.json
+local_*.json
+
+# Backups & temp files
+*.tar
+*.gz
+*.zip
+.lgd-nfy*
+.DS_Store
+Thumbs.db

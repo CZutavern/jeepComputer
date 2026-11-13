@@ -1,0 +1,746 @@
+title: Jeep 3-Way LR4
+description: '6.1: PRO-X6BM front + rear (out 1-4) above 300 Hz, 8in center mid-bass
+  at the 2nd row (out 5-6) 80-300 Hz, Sundown 12in subs as one mono bass channel (out
+  7-8) below 80 Hz. Linkwitz-Riley 24 dB/oct, per-output trim + delay.'
+devices:
+  samplerate: 48000
+  chunksize: 512
+  queuelimit: null
+  silence_threshold: null
+  silence_timeout: null
+  capture:
+    type: PipeWire
+    channels: 10
+    node_name: camilladsp-capture
+    node_description: CamillaDSP
+    node_group_name: null
+    labels: null
+    autoconnect_to: null
+  playback:
+    type: Alsa
+    channels: 8
+    device: hw:CARD=sndrpihifiberry,DEV=0
+    format: S32_LE
+  enable_rate_adjust: true
+  target_level: 768
+  adjust_period: 3.0
+  resampler:
+    type: AsyncSinc
+    profile: Fast
+  capture_samplerate: 48000
+  stop_on_rate_change: null
+  rate_measure_interval: null
+  volume_ramp_time: null
+  volume_limit: null
+  multithreaded: null
+  worker_threads: null
+mixers:
+  route_to_speakers:
+    description: In 1-2 CarPlay L/R, in 3-10 stems (drums, bass, vocals, other; L/R)
+      placed on the Music page. Out 1-2 front, 3-4 rear (cargo), 5-6 8in mid-bass
+      (2nd row), 7-8 subs.
+    channels:
+      in: 10
+      out: 8
+    mapping:
+    - dest: 0
+      sources:
+      - channel: 0
+        gain: -6.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 2
+        gain: 0.071377
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 3
+        gain: 0.065779
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 4
+        gain: 0.136129
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 5
+        gain: 0.128324
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 6
+        gain: 0.211402
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 7
+        gain: 0.211402
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 8
+        gain: 0.164504
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 9
+        gain: 0.131615
+        inverted: false
+        mute: false
+        scale: linear
+      mute: false
+    - dest: 1
+      sources:
+      - channel: 1
+        gain: -6.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 2
+        gain: 0.048435
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 3
+        gain: 0.055143
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 4
+        gain: 0.095985
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 5
+        gain: 0.103528
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 6
+        gain: 0.159445
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 7
+        gain: 0.159445
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 8
+        gain: 0.095995
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 9
+        gain: 0.128303
+        inverted: false
+        mute: false
+        scale: linear
+      mute: false
+    - dest: 2
+      sources:
+      - channel: 0
+        gain: -6.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 2
+        gain: 0.321135
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 3
+        gain: 0.212059
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 4
+        gain: 0.242749
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 5
+        gain: 0.229792
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 6
+        gain: 0.125734
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 7
+        gain: 0.125734
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 8
+        gain: 0.234565
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 9
+        gain: 0.205013
+        inverted: false
+        mute: false
+        scale: linear
+      mute: false
+    - dest: 3
+      sources:
+      - channel: 1
+        gain: -6.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 2
+        gain: 0.195534
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 3
+        gain: 0.310681
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 4
+        gain: 0.215242
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 5
+        gain: 0.231184
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 6
+        gain: 0.118754
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 7
+        gain: 0.118754
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 8
+        gain: 0.18725
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 9
+        gain: 0.229096
+        inverted: false
+        mute: false
+        scale: linear
+      mute: false
+    - dest: 4
+      sources:
+      - channel: 0
+        gain: 0.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 2
+        gain: 0.290859
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 3
+        gain: 0.210328
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 4
+        gain: 0.268141
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 5
+        gain: 0.233047
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 6
+        gain: 0.250594
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 7
+        gain: 0.250594
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 8
+        gain: 0.302888
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 9
+        gain: 0.1983
+        inverted: false
+        mute: false
+        scale: linear
+      mute: false
+    - dest: 5
+      sources:
+      - channel: 1
+        gain: 0.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 2
+        gain: 0.210328
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 3
+        gain: 0.290859
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 4
+        gain: 0.233047
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 5
+        gain: 0.268141
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 6
+        gain: 0.250594
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 7
+        gain: 0.250594
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 8
+        gain: 0.1983
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 9
+        gain: 0.302888
+        inverted: false
+        mute: false
+        scale: linear
+      mute: false
+    - dest: 6
+      sources:
+      - channel: 0
+        gain: 11.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 1
+        gain: 6.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 2
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 3
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 4
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 5
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 6
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 7
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 8
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 9
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      mute: false
+    - dest: 7
+      sources:
+      - channel: 0
+        gain: 11.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 1
+        gain: 6.0
+        inverted: false
+        mute: false
+        scale: dB
+      - channel: 2
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 3
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 4
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 5
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 6
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 7
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 8
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      - channel: 9
+        gain: 2.511886
+        inverted: false
+        mute: false
+        scale: linear
+      mute: false
+    labels:
+    - Front L
+    - Front R
+    - Rear L
+    - Rear R
+    - 8in L
+    - 8in R
+    - Sub 1
+    - Sub 2
+filters:
+  safety_limiter:
+    type: Limiter
+    description: Soft clip just below full scale to protect against hard digital clipping
+    parameters:
+      soft_clip: true
+      clip_limit: -1.0
+  trim_8:
+    type: Gain
+    description: Sub 2 level trim
+    parameters:
+      gain: 0.0
+      inverted: false
+      mute: false
+      scale: dB
+  mid_highpass:
+    type: BiquadCombo
+    description: 'PRO-X6BM front + rear: keep out of the bass, try 250-350 Hz by ear'
+    parameters:
+      type: LinkwitzRileyHighpass
+      freq: 300.0
+      order: 4
+  delay_4:
+    type: Delay
+    description: Rear R time alignment
+    parameters:
+      delay: 0.0
+      unit: ms
+      subsample: false
+  delay_1:
+    type: Delay
+    description: Front L time alignment (rough estimate for a 1975 Cherokee; delays
+      align every speaker to the driver's seat)
+    parameters:
+      delay: 4.1
+      unit: ms
+      subsample: false
+  trim_6:
+    type: Gain
+    description: 8in R level trim
+    parameters:
+      gain: 0.0
+      inverted: false
+      mute: false
+      scale: dB
+  trim_4:
+    type: Gain
+    description: Rear R level trim
+    parameters:
+      gain: 0.0
+      inverted: false
+      mute: false
+      scale: dB
+  delay_6:
+    type: Delay
+    description: 8in R time alignment
+    parameters:
+      delay: 2.5
+      unit: ms
+      subsample: false
+  trim_5:
+    type: Gain
+    description: 8in L level trim
+    parameters:
+      gain: 0.0
+      inverted: false
+      mute: false
+      scale: dB
+  delay_2:
+    type: Delay
+    description: Front R time alignment
+    parameters:
+      delay: 2.7
+      unit: ms
+      subsample: false
+  midbass_highpass:
+    type: BiquadCombo
+    description: '8in center mid-bass: hand-off from the subs'
+    parameters:
+      type: LinkwitzRileyHighpass
+      freq: 80.0
+      order: 4
+  midbass_lowpass:
+    type: BiquadCombo
+    description: '8in center mid-bass: hand-off to the front/rear mids'
+    parameters:
+      type: LinkwitzRileyLowpass
+      freq: 300.0
+      order: 4
+  delay_5:
+    type: Delay
+    description: 8in L time alignment
+    parameters:
+      delay: 3.85
+      unit: ms
+      subsample: false
+  sub_subsonic:
+    type: BiquadCombo
+    description: Protects the woofers from excursion below tuning
+    parameters:
+      type: ButterworthHighpass
+      freq: 25.0
+      order: 4
+  delay_3:
+    type: Delay
+    description: Rear L time alignment
+    parameters:
+      delay: 0.75
+      unit: ms
+      subsample: false
+  trim_1:
+    type: Gain
+    description: Front L level trim
+    parameters:
+      gain: 0.0
+      inverted: false
+      mute: false
+      scale: dB
+  sub_lowpass:
+    type: BiquadCombo
+    description: 'Subs: hand-off to the mid-bass'
+    parameters:
+      type: LinkwitzRileyLowpass
+      freq: 80.0
+      order: 4
+  trim_2:
+    type: Gain
+    description: Front R level trim
+    parameters:
+      gain: 0.0
+      inverted: false
+      mute: false
+      scale: dB
+  delay_8:
+    type: Delay
+    description: Sub 2 time alignment
+    parameters:
+      delay: 0.25
+      unit: ms
+      subsample: false
+  trim_3:
+    type: Gain
+    description: Rear L level trim
+    parameters:
+      gain: 0.0
+      inverted: false
+      mute: false
+      scale: dB
+  loudness:
+    type: Loudness
+    description: More bass/treble at low volume (turn on with BYPASS)
+    parameters:
+      reference_level: -25.0
+      high_boost: 0.0
+      low_boost: 7.0
+      fader: Main
+      attenuate_mid: false
+  delay_7:
+    type: Delay
+    description: Sub 1 time alignment
+    parameters:
+      delay: 0.4
+      unit: ms
+      subsample: false
+  trim_7:
+    type: Gain
+    description: Sub 1 level trim
+    parameters:
+      gain: 0.0
+      inverted: false
+      mute: false
+      scale: dB
+processors: null
+pipeline:
+- type: Mixer
+  name: route_to_speakers
+  description: Route inputs to speakers
+  bypassed: false
+- type: Filter
+  channels:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  names:
+  - loudness
+  description: Loudness
+  bypassed: true
+- type: Filter
+  channels:
+  - 0
+  - 1
+  - 2
+  - 3
+  names:
+  - mid_highpass
+  description: 'Front + rear mids: 300 Hz and up'
+  bypassed: false
+- type: Filter
+  channels:
+  - 4
+  - 5
+  names:
+  - midbass_highpass
+  - midbass_lowpass
+  description: 'Center mid-bass: 80-300 Hz'
+  bypassed: false
+- type: Filter
+  channels:
+  - 6
+  - 7
+  names:
+  - sub_subsonic
+  - sub_lowpass
+  description: 'Subs (mono bass): 25-80 Hz'
+  bypassed: false
+- type: Filter
+  channels:
+  - 0
+  names:
+  - trim_1
+  - delay_1
+  description: Level + time alignment
+  bypassed: false
+- type: Filter
+  channels:
+  - 1
+  names:
+  - trim_2
+  - delay_2
+  description: Level + time alignment
+  bypassed: false
+- type: Filter
+  channels:
+  - 2
+  names:
+  - trim_3
+  - delay_3
+  description: Level + time alignment
+  bypassed: false
+- type: Filter
+  channels:
+  - 3
+  names:
+  - trim_4
+  - delay_4
+  description: Level + time alignment
+  bypassed: false
+- type: Filter
+  channels:
+  - 4
+  names:
+  - trim_5
+  - delay_5
+  description: Level + time alignment
+  bypassed: false
+- type: Filter
+  channels:
+  - 5
+  names:
+  - trim_6
+  - delay_6
+  description: Level + time alignment
+  bypassed: false
+- type: Filter
+  channels:
+  - 6
+  names:
+  - trim_7
+  - delay_7
+  description: Level + time alignment
+  bypassed: false
+- type: Filter
+  channels:
+  - 7
+  names:
+  - trim_8
+  - delay_8
+  description: Level + time alignment
+  bypassed: false
+- type: Filter
+  channels:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  names:
+  - safety_limiter
+  description: Clip protection
+  bypassed: false

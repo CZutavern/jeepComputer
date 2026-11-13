@@ -1,0 +1,11 @@
+{
+  "vehicle_signal": "acc",
+  "station_mode": true,
+  "duty_cycle": false,
+  "station_max_hours": 48,
+  "grace_s": 30,
+  "critical_voltage": -1,
+  "critical_percent": -1,
+  "station_reserve_percent": -1,
+  "station_reserve_voltage": -1
+}

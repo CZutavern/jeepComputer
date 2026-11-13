@@ -1,0 +1,12 @@
+[Unit]
+Description=Jeep Computer: sleep-cycle wake check (keep the desktop off while the Jeep is off)
+DefaultDependencies=no
+After=local-fs.target
+Before=display-manager.service camilladsp.service jeep-ups.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /home/pi/jeep_computer/tools/duty_check.sh
+
+[Install]
+WantedBy=multi-user.target

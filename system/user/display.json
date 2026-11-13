@@ -1,0 +1,7 @@
+{
+  "brightness": 1.0,
+  "auto_dim": true,
+  "night_dim": 0.45,
+  "day_lux": 60.0,
+  "night_lux": 4.0
+}

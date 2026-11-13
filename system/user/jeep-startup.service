@@ -1,0 +1,15 @@
+[Unit]
+Description=Jeep Computer amplifier controller
+After=default.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/jeep_computer
+ExecStart=/home/pi/jeep_computer/jeep_startup.sh
+Restart=always
+RestartSec=3
+
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+
+[Install]
+WantedBy=default.target

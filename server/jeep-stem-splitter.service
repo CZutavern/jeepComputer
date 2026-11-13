@@ -1,0 +1,17 @@
+# User service on the stem server:
+#   cp server/jeep-stem-splitter.service ~/.config/systemd/user/
+#   systemctl --user enable --now jeep-stem-splitter
+#   sudo loginctl enable-linger $USER      # keep it running when logged out
+[Unit]
+Description=Jeep stem splitter (Demucs on the GPU)
+
+[Service]
+Environment=DEMUCS_PYTHON=%h/jeep-stems/venv/bin/python
+Environment=DEMUCS_MODEL=htdemucs_ft
+Environment=DEMUCS_DEVICE=cuda
+ExecStart=%h/jeep-stems/venv/bin/python %h/jeep-stems/stem_splitter.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

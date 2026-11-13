@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+	<touch deviceName="wch.cn TouchScreen (USB 1-1.1)" mapToOutput="HDMI-A-2" mouseEmulation="yes"/>
+	<!-- Media volume keys drive CamillaDSP through the dashboard (the
+	     system-wide default only changes the desktop volume). -->
+	<keyboard>
+		<keybind key="XF86AudioRaiseVolume">
+			<action name="Execute" command="/home/pi/jeep_computer/tools/volume_key.sh up" />
+		</keybind>
+		<keybind key="XF86AudioLowerVolume">
+			<action name="Execute" command="/home/pi/jeep_computer/tools/volume_key.sh down" />
+		</keybind>
+		<keybind key="XF86AudioMute">
+			<action name="Execute" command="/home/pi/jeep_computer/tools/volume_key.sh mute" />
+		</keybind>
+	</keyboard>
+	<windowRules>
+		<!-- Dock LIVI / CarPlay between the dashboard top bar (60px) and nav bar (90px).
+		     Don't use skipTaskbar: it hides LIVI from wlrctl, which the dashboard uses. -->
+		<windowRule identifier="dev.f-io.livi" serverDecoration="no">
+			<action name="SetDecorations" decorations="none" forceSSD="yes"/>
+			<action name="MoveTo" x="0" y="60"/>
+			<action name="ResizeTo" width="1920" height="930"/>
+		</windowRule>
+	</windowRules>
+</openbox_config>

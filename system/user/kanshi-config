@@ -1,0 +1,5 @@
+# Jeep Computer: the screen is mounted upside down. kanshi runs at
+# desktop start, so this rotates it before anything is shown.
+profile jeep {
+    output HDMI-A-2 mode 1920x1080@60Hz transform 180
+}

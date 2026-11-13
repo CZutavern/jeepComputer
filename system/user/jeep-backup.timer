@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily Jeep Computer backup
+
+[Timer]
+OnBootSec=10min
+OnCalendar=daily
+# The Jeep is often off at midnight: run a missed backup on the next boot
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

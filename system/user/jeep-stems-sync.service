@@ -1,0 +1,8 @@
+[Unit]
+Description=Pull split stems from the stem server into ~/Music/Stems
+
+[Service]
+Type=oneshot
+ExecStart=/home/pi/jeep_computer/tools/stems_sync.sh
+Nice=10
+IOSchedulingClass=idle

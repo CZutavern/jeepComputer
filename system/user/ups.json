@@ -1,0 +1,16 @@
+{
+  "grace_s": 30,
+  "critical_voltage": -1,
+  "critical_percent": -1,
+  "station_mode": true,
+  "duty_cycle": false,
+  "vehicle_signal": "battery",
+  "station_max_hours": 48,
+  "battery_on_v": 5.0,
+  "battery_off_v": 5.0,
+  "battery_off_s": 5,
+  "station_reserve_percent": -1,
+  "station_reserve_voltage": -1,
+  "deep_sleep_below_v": null,
+  "deep_sleep_after_s": 120
+}

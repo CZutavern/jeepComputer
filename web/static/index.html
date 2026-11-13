@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050a14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Jeep Computer</title>
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  :root {
+    --bg: #050a14; --bg-top: #0a1426; --card: #0c1628; --card-top: #13223e; --card-alt: #12203a;
+    --border: #1d2d4a; --border-bright: #2c4570;
+    --text: #eef4ff; --text-2: #8ea4c8; --muted: #50648a;
+    --accent: #2f8cff; --accent-bright: #6cb4ff; --accent-dark: #1a4fa8;
+    --good: #2fd49a; --warning: #ffb42e; --critical: #ff4d61;
+    --radius: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: linear-gradient(180deg, var(--bg-top), var(--bg) 60%) fixed;
+    color: var(--text);
+    font: 16px/1.35 "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 1100px; margin: 0 auto; }
+
+  header { display: flex; align-items: center; gap: 12px; padding: 18px 0 14px; }
+  header .bar { width: 5px; height: 26px; border-radius: 3px; background: var(--accent); }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: 2px; font-weight: 800; text-transform: uppercase; }
+  header .spacer { flex: 1; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 999px;
+          font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+          background: var(--card-alt); border: 1px solid var(--border); color: var(--text-2); }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .pill.good .dot { background: var(--good); } .pill.good { color: var(--good); }
+  .pill.warn .dot { background: var(--warning); } .pill.warn { color: var(--warning); }
+  .pill.bad .dot { background: var(--critical); } .pill.bad { color: var(--critical); }
+
+  .grid { display: grid; gap: 14px; }
+  @media (min-width: 760px) { .grid.two { grid-template-columns: 1.3fr 1fr; } }
+
+  .card {
+    background: linear-gradient(180deg, var(--card-top), var(--card));
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px;
+    min-width: 0;
+  }
+  .caption { font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text-2); margin: 0 0 8px; }
+  .big { font-size: 34px; font-weight: 800; line-height: 1.1; }
+  .sub { color: var(--text-2); font-size: 14px; }
+  .muted { color: var(--muted); }
+
+  .alert { border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; font-weight: 700;
+           border: 1px solid; display: none; }
+  .alert.warning { display: block; color: var(--warning); border-color: #6b4c14; background: #2a1f08; }
+  .alert.critical { display: block; color: var(--critical); border-color: #6b1f29; background: #2a0b10; }
+
+  /* Weather hero */
+  .hero { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+  .hero .temp { font-size: 52px; font-weight: 800; line-height: 1; }
+  .hero .temp small { font-size: 22px; color: var(--text-2); font-weight: 700; }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; color: var(--text-2); font-size: 14px; }
+  .facts b { color: var(--text); }
+  .facts span { white-space: nowrap; }
+  .ring { width: 116px; height: 116px; position: relative; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring .label b { font-size: 26px; }
+  .ring .label span { font-size: 10px; letter-spacing: 1.5px; color: var(--text-2); font-weight: 800; text-transform: uppercase; }
+
+  .trend { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-top: 14px;
+           padding-top: 12px; border-top: 1px solid var(--border); }
+  .trend .change { font-size: 26px; font-weight: 800; }
+  .reasons { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); font-size: 14px; }
+
+  /* Chart */
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tabs button { background: var(--card-alt); color: var(--text-2); border: 1px solid var(--border-bright);
+                 border-radius: 10px; padding: 8px 12px; font: inherit; font-size: 13px; font-weight: 800;
+                 letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
+  .tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent-bright); }
+  .tabs .gap { flex: 1; }
+  .chart { width: 100%; height: 240px; display: block; touch-action: pan-y; }
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .chart-head .now { font-size: 26px; font-weight: 800; }
+  .readout { font-size: 13px; color: var(--text-2); min-height: 18px; }
+
+  /* Tiles */
+  .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media (min-width: 520px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
+  .tile { background: var(--card-alt); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+  .tile .k { font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-2); }
+  .tile .v { font-size: 26px; font-weight: 800; margin-top: 2px; }
+  .tile .v small { font-size: 13px; color: var(--text-2); font-weight: 700; margin-left: 3px; }
+  .tile .meter { height: 5px; border-radius: 3px; background: var(--border); margin-top: 8px; overflow: hidden; }
+  .tile .meter i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+  .good-c { color: var(--good); } .warn-c { color: var(--warning); } .bad-c { color: var(--critical); }
+
+  .row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .row:last-child { border-bottom: 0; }
+  .row span:first-child { color: var(--text-2); }
+  .row span:last-child { font-weight: 800; text-align: right; }
+
+  .downloads { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn { display: inline-block; text-decoration: none; background: var(--card-alt); color: var(--text);
+         border: 1px solid var(--border-bright); border-radius: 12px; padding: 10px 14px; font-weight: 800; font-size: 14px; }
+  .btn:active { background: var(--accent-dark); }
+  footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 18px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="bar"></div>
+    <h1>Jeep Computer</h1>
+    <div class="spacer"></div>
+    <span id="status" class="pill"><span class="dot"></span><span>Connecting</span></span>
+  </header>
+
+  <div id="alert" class="alert"></div>
+
+  <div class="grid two">
+    <section class="card">
+      <p class="caption">Weather · next 12 h</p>
+      <div class="hero">
+        <div>
+          <div class="temp" id="w-temp">--<small>°F</small></div>
+          <div class="big" id="w-forecast" style="font-size:22px;margin-top:6px">Collecting data…</div>
+          <div class="facts" id="w-facts"></div>
+        </div>
+        <div class="ring" id="storm-ring">
+          <svg viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="50" fill="none" stroke="#1d2d4a" stroke-width="12"/>
+            <circle id="storm-arc" cx="60" cy="60" r="50" fill="none" stroke="#2f8cff" stroke-width="12"
+                    stroke-linecap="round" stroke-dasharray="0 400"/>
+          </svg>
+          <div class="label"><b id="storm-pct">--</b><span>Storm risk</span></div>
+        </div>
+      </div>
+      <div class="trend">
+        <span class="caption" style="margin:0">Pressure 3 h</span>
+        <span class="change" id="p-change">--</span>
+        <span id="p-tendency" class="sub"></span>
+      </div>
+      <ul class="reasons" id="w-reasons"></ul>
+    </section>
+
+    <section class="card">
+      <p class="caption">Vehicle</p>
+      <div class="tiles" id="vehicle"></div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:14px">
+    <div class="tabs" id="metric-tabs"></div>
+    <div class="tabs" id="range-tabs"></div>
+    <div class="chart-head">
+      <div><span class="caption" id="chart-title">Pressure</span></div>
+      <div><span class="now" id="chart-now">--</span> <span class="sub" id="chart-rate"></span></div>
+    </div>
+    <svg class="chart" id="chart" preserveAspectRatio="none"></svg>
+    <div class="readout" id="readout">Touch the chart to read a value</div>
+  </section>
+
+  <div class="grid two" style="margin-top:14px">
+    <section class="card">
+      <p class="caption">Power</p>
+      <div id="power"></div>
+    </section>
+    <section class="card">
+      <p class="caption">Sun</p>
+      <div id="sun"></div>
+      <p class="caption" style="margin-top:16px">Weather history</p>
+      <div class="downloads">
+        <a class="btn" href="api/history.csv?days=7">Download 7 days (CSV)</a>
+        <a class="btn" href="api/history.csv?days=60">All 60 days</a>
+      </div>
+    </section>
+  </div>
+
+  <footer id="footer">—</footer>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v)) ? "--" : Number(v).toFixed(d);
+const clock = (t) => t ? new Date(t * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "--";
+const COLORS = { pressure: "#6cb4ff", temp: "#ffb42e", humidity: "#2fd49a", dew: "#a98bff", light: "#ffd84d" };
+const METRICS = [["pressure", "Pressure"], ["temp", "Temp"], ["humidity", "Humidity"], ["dew", "Dew pt"], ["light", "Light"]];
+const RANGES = [["3h", "3 h", 3], ["24h", "24 h", 24], ["72h", "3 days", 72]];
+
+let weather = null;
+let chartMetric = "pressure", chartRange = 24;
+
+function load(key, fallback) { try { return localStorage.getItem(key) || fallback; } catch (e) { return fallback; } }
+function save(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+chartMetric = load("jc-metric", "pressure");
+chartRange = Number(load("jc-range", "24"));
+
+async function getJSON(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+/* ---------------- Live vehicle ---------------- */
+
+function tile(label, value, unit, cls = "", meter = null) {
+  const m = meter === null ? "" :
+    `<div class="meter"><i style="width:${Math.max(0, Math.min(100, meter))}%"></i></div>`;
+  return `<div class="tile"><div class="k">${label}</div>
+          <div class="v ${cls}">${value}${unit ? `<small>${unit}</small>` : ""}</div>${m}</div>`;
+}
+
+function statusClass(v, warn, bad, lowIsBad = false) {
+  if (v === null || v === undefined) return "";
+  if (lowIsBad) return v <= bad ? "bad-c" : v <= warn ? "warn-c" : "";
+  return v >= bad ? "bad-c" : v >= warn ? "warn-c" : "";
+}
+
+function renderLive(live) {
+  const v = live.vehicle || {};
+  const ups = live.ups || {};
+  const pill = $("status");
+  let cls = "bad", text = "Offline";
+  if (live.fresh && live.source === "dashboard") { cls = "good"; text = "Live"; }
+  else if (live.fresh && live.source === "station") { cls = "warn"; text = "Parked · weather station"; }
+  pill.className = "pill " + cls;
+  pill.lastElementChild.textContent = text;
+
+  $("vehicle").innerHTML = [
+    tile("Coolant", fmt(v.coolant_f), "°F", statusClass(v.coolant_f, 220, 235), v.coolant_f === null ? null : (v.coolant_f - 100) / 1.6),
+    tile("Oil", fmt(v.oil_psi), "psi", statusClass(v.oil_psi, 15, 7, true), v.oil_psi === null ? null : v.oil_psi / 0.8),
+    tile("Fuel", fmt(v.fuel_pct), "%", statusClass(v.fuel_pct, 20, 10, true), v.fuel_pct),
+    tile("Start battery", fmt(v.battery_v, 2), "V", statusClass(v.battery_v, 12.2, 11.8, true)),
+    tile("Engine", fmt(v.rpm), "rpm", statusClass(v.rpm, v.rpm_redline || 4500, (v.rpm_redline || 4500) * 1.2), v.rpm === null || v.rpm === undefined ? null : v.rpm / 60),
+    tile("Key", v.key_on === null || v.key_on === undefined ? "—" : v.key_on ? "On" : "Off", ""),
+    tile("Cabin", fmt(v.cabin_f), "°F"),
+    tile("Outside", fmt(v.outside_f), "°F"),
+    tile("Amp box", fmt(v.amp_box_f), "°F", statusClass(v.amp_box_f, 140, 158)),
+  ].join("");
+
+  const mode = { vehicle: "Jeep on", grace: "Jeep off · waiting", station: "Weather station (battery)",
+                 duty: "Sleep cycle · taking a reading", duty_sleep: "Sleeping between readings",
+                 shutting_down: "Shutting down" }[ups.mode] || "—";
+  $("power").innerHTML = [
+    ["Mode", mode],
+    ...(ups.mode === "station" && ups.station_max_hours
+      ? [["Station mode", `${fmt(ups.station_hours, 1)} h of ${ups.station_max_hours} h`]] : []),
+    ["Vehicle power", ups.vehicle_power === undefined ? "—" : (ups.vehicle_power ? "Present" : "Off")],
+    ["UPS battery", ups.battery_voltage ? `${fmt(ups.battery_voltage, 2)} V · ${fmt(ups.battery_percent)} %` : "—"],
+    ["Hours left", ups.hours_left ? `${fmt(ups.hours_left, 1)} h` : "—"],
+    ["Full in", ups.hours_to_full ? `~${fmt(ups.hours_to_full, 1)} h (${fmt(ups.charge_rate, 0)} %/h)` : "—"],
+    ["On battery for", ups.on_battery_s ? `${Math.round(ups.on_battery_s / 60)} min` : "—"],
+  ].map(([k, val]) => `<div class="row"><span>${k}</span><span>${val}</span></div>`).join("");
+
+  const sun = live.sun;
+  if (sun) {
+    const now = live.time;
+    const left = sun.daylight ? sun.sunset - now : null;
+    $("sun").innerHTML = [
+      ["Sunrise", clock(sun.sunrise)],
+      ["Sunset", clock(sun.sunset)],
+      [sun.daylight ? "Daylight left" : "Next sunrise",
+       sun.daylight ? `${Math.floor(left / 3600)} h ${String(Math.floor(left % 3600 / 60)).padStart(2, "0")} m` : clock(sun.next_sunrise)],
+    ].map(([k, val]) => `<div class="row"><span>${k}</span><span>${val}</span></div>`).join("");
+  }
+
+  const age = live.age_s === null ? "no data yet" : live.fresh ? "live" : `last reading ${Math.round(live.age_s / 60)} min ago`;
+  $("footer").textContent = `Updated ${new Date().toLocaleTimeString()} · sensors ${age}`;
+
+  alerts.ups = ups.mode === "grace" ? ["warning", "Jeep is off: switching to weather-station mode"]
+             : ups.mode === "station" && ups.halt_warning ? ["critical", ups.halt_warning]
+             : ups.mode === "station" && ups.station_max_hours
+               ? ["warning", `Station mode: ${fmt(ups.station_hours, 1)} h of ${ups.station_max_hours} h, logging weather`]
+             : ups.mode === "station" ? ["warning", "Parked on UPS battery: logging weather"]
+             : ups.mode === "shutting_down" ? ["critical", "UPS battery low: shutting down"] : null;
+  showAlerts();
+}
+
+/* ---------------- Weather ---------------- */
+
+// Most severe of the weather and UPS alerts; cleared when neither applies
+const alerts = { weather: null, ups: null };
+function showAlerts() {
+  const list = [alerts.weather, alerts.ups].filter(Boolean);
+  const top = list.find((a) => a[0] === "critical") || list[0];
+  const el = $("alert");
+  el.className = top ? "alert " + (top[0] === "critical" ? "critical" : "warning") : "alert";
+  el.textContent = top ? top[1] : "";
+}
+
+// Seconds since a metric's newest real value (history can be hours old,
+// e.g. while the outside sensor is unplugged)
+const STALE_S = 1800;
+function lastPoint(metric) {
+  const pts = (metric && metric.points) || [];
+  for (let i = pts.length - 1; i >= 0; i--) if (pts[i][1] !== null) return pts[i];
+  return null;
+}
+function isStale(metric) {
+  const p = lastPoint(metric);
+  return !p || Date.now() / 1000 - p[0] > STALE_S;
+}
+function since(t) {
+  const d = new Date(t * 1000), today = new Date();
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return d.toDateString() === today.toDateString() ? time : `${d.toLocaleDateString([], { weekday: "short" })} ${time}`;
+}
+
+function renderWeather(w) {
+  weather = w;
+  const m = w.metrics || {};
+  const tempStale = isStale(m.temp);
+  const temp = tempStale ? null : m.temp.now;
+  $("w-temp").innerHTML = `${fmt(temp)}<small>°F</small>`;
+  $("w-forecast").textContent = w.forecast || "Collecting data…";
+
+  const facts = [];
+  if (tempStale) {
+    const p = lastPoint(m.temp);
+    facts.push(p ? `No outside reading since <b>${since(p[0])}</b>` : "No outside temperature sensor");
+  } else {
+    if (w.humidity !== null) facts.push(`Humidity <b>${fmt(w.humidity)}%</b>`);
+    if (m.dew && m.dew.now !== null) facts.push(`Dew point <b>${fmt(m.dew.now)}°</b>`);
+    if (w.heat_index_f !== null && temp !== null && w.heat_index_f - temp >= 2) facts.push(`Feels like <b>${fmt(w.heat_index_f)}°</b>`);
+  }
+  if (m.temp && m.temp.min_24h !== null) facts.push(`24 h <b>${fmt(m.temp.min_24h)}° / ${fmt(m.temp.max_24h)}°</b>`);
+  if (w.slp_hpa !== null) facts.push(`<b>${fmt(w.slp_hpa, 1)}</b> hPa`);
+  $("w-facts").innerHTML = facts.map((f) => `<span>${f}</span>`).join("");
+
+  // Storm ring
+  const pct = w.storm_probability;
+  const color = { Low: "#2fd49a", Moderate: "#2f8cff", High: "#ffb42e", Severe: "#ff4d61" }[w.storm_level] || "#50648a";
+  const len = 2 * Math.PI * 50;
+  $("storm-arc").setAttribute("stroke-dasharray", `${(pct || 0) / 100 * len} ${len}`);
+  $("storm-arc").setAttribute("stroke", color);
+  $("storm-pct").textContent = pct === null ? "--" : `${pct}%`;
+
+  const c = w.change_3h;
+  $("p-change").textContent = c === null ? "--" : `${c > 0 ? "+" : ""}${fmt(c, 1)} hPa`;
+  $("p-change").className = "change " + (c === null ? "" : c <= -3.6 ? "bad-c" : c <= -1.6 ? "warn-c" : c >= 1.6 ? "good-c" : "");
+  $("p-tendency").textContent = [w.tendency, w.characteristic].filter(Boolean).join(" · ");
+
+  const reasons = (w.alerts || []).map((a) => a[1]).concat(w.storm_reasons || []);
+  if (w.storm_eta && pct >= 50) reasons.push(`Expect it ${w.storm_eta}`);
+  $("w-reasons").innerHTML = reasons.slice(0, 5).map((r) => `<li>${r}</li>`).join("");
+
+  alerts.weather = (w.alerts || [])[0] || null;
+  showAlerts();
+
+  drawChart();
+}
+
+/* ---------------- Chart ---------------- */
+
+function buildTabs() {
+  $("metric-tabs").innerHTML = METRICS.map(([k, label]) =>
+    `<button data-m="${k}" class="${k === chartMetric ? "on" : ""}">${label}</button>`).join("");
+  $("range-tabs").innerHTML = RANGES.map(([k, label, h]) =>
+    `<button data-r="${h}" class="${h === chartRange ? "on" : ""}">${label}</button>`).join("");
+  $("metric-tabs").onclick = (e) => { const m = e.target.dataset.m; if (m) { chartMetric = m; save("jc-metric", m); buildTabs(); drawChart(); } };
+  $("range-tabs").onclick = (e) => { const r = e.target.dataset.r; if (r) { chartRange = Number(r); save("jc-range", r); buildTabs(); drawChart(); } };
+}
+
+let chartPoints = [], chartGeom = null;
+
+function niceStep(span) {
+  const raw = span / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  for (const s of [1, 2, 2.5, 5, 10]) if (raw <= s * mag) return s * mag;
+  return 10 * mag;
+}
+
+function drawChart() {
+  const svg = $("chart");
+  const metric = weather && weather.metrics && weather.metrics[chartMetric];
+  const label = METRICS.find(([k]) => k === chartMetric)[1];
+  $("chart-title").textContent = label;
+  const W = svg.clientWidth || 600, H = svg.clientHeight || 240;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+  if (!metric || !metric.points || metric.points.length < 2) {
+    svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" fill="#50648a" text-anchor="middle" font-size="15">Collecting data…</text>`;
+    $("chart-now").textContent = "--"; $("chart-rate").textContent = "";
+    chartPoints = []; return;
+  }
+
+  const unit = metric.unit || "", dec = metric.decimals ?? 1;
+  const now = Date.now() / 1000, start = now - chartRange * 3600;
+  const pts = metric.points.filter(([t, v]) => t >= start && v !== null);
+  chartPoints = pts;
+  const lp = lastPoint(metric);
+  $("chart-now").textContent = isStale(metric)
+    ? (lp ? `${fmt(lp[1], dec)} ${unit} · ${since(lp[0])}` : "--")
+    : `${fmt(metric.now, dec)} ${unit}`;
+  $("chart-rate").textContent = metric.slope_h === null ? "" :
+    `${metric.slope_h > 0 ? "▲" : metric.slope_h < 0 ? "▼" : "■"} ${fmt(Math.abs(metric.slope_h), dec)} ${unit}/h`;
+
+  if (pts.length < 2) { svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" fill="#50648a" text-anchor="middle" font-size="15">No data in this range</text>`; return; }
+
+  let lo = Math.min(...pts.map((p) => p[1])), hi = Math.max(...pts.map((p) => p[1]));
+  const minSpan = { pressure: 2, temp: 4, humidity: 10, dew: 4, light: 100 }[chartMetric] || 1;
+  if (hi - lo < minSpan) { const mid = (hi + lo) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
+  const pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
+
+  const L = 8, R = W - 48, T = 12, B = H - 24;
+  const x = (t) => L + (t - start) / (now - start) * (R - L);
+  const y = (v) => B - (v - lo) / (hi - lo) * (B - T);
+  chartGeom = { x, y, start, now, L, R };
+
+  let out = "";
+  const step = niceStep(hi - lo);
+  for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) {
+    out += `<line x1="${L}" x2="${R}" y1="${y(v)}" y2="${y(v)}" stroke="#1d2d4a"/>`;
+    out += `<text x="${R + 6}" y="${y(v) + 4}" fill="#50648a" font-size="11" font-weight="700">${v.toFixed(step < 1 ? 1 : 0)}</text>`;
+  }
+  const tickH = chartRange <= 3 ? 1 : chartRange <= 24 ? 6 : 24;
+  for (let t = Math.ceil(start / (tickH * 3600)) * tickH * 3600; t <= now; t += tickH * 3600) {
+    const d = new Date(t * 1000);
+    const text = chartRange > 24 ? d.toLocaleDateString([], { weekday: "short" }) : d.toLocaleTimeString([], { hour: "numeric" });
+    out += `<line x1="${x(t)}" x2="${x(t)}" y1="${T}" y2="${B}" stroke="#1d2d4a" stroke-dasharray="2 4"/>`;
+    const tx = Math.max(L + 18, Math.min(R - 18, x(t)));
+    out += `<text x="${tx}" y="${H - 6}" fill="#50648a" font-size="11" text-anchor="middle" font-weight="700">${text}</text>`;
+  }
+
+  // Line, broken across gaps longer than 20 minutes
+  const color = COLORS[chartMetric] || "#6cb4ff";
+  let line = "", area = "", seg = [];
+  const flush = () => {
+    if (seg.length > 1) {
+      const d = seg.map(([t, v], i) => `${i ? "L" : "M"}${x(t).toFixed(1)},${y(v).toFixed(1)}`).join("");
+      line += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>`;
+      area += `<path d="${d}L${x(seg[seg.length - 1][0]).toFixed(1)},${B}L${x(seg[0][0]).toFixed(1)},${B}Z" fill="url(#fill)"/>`;
+    }
+    seg = [];
+  };
+  pts.forEach((p, i) => { if (i && p[0] - pts[i - 1][0] > 1200) flush(); seg.push(p); });
+  flush();
+
+  const last = pts[pts.length - 1];
+  svg.innerHTML = `<defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${color}" stop-opacity=".35"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    ${out}${area}${line}
+    <circle cx="${x(last[0])}" cy="${y(last[1])}" r="4.5" fill="${color}"/>
+    <g id="cursor" style="display:none"><line id="cur-line" y1="${T}" y2="${B}" stroke="#8ea4c8" stroke-dasharray="3 3"/>
+      <circle id="cur-dot" r="5" fill="#eef4ff" stroke="${color}" stroke-width="2"/></g>`;
+}
+
+function readoutAt(clientX) {
+  if (!chartPoints.length || !chartGeom) return;
+  const svg = $("chart"), rect = svg.getBoundingClientRect();
+  const px = (clientX - rect.left) / rect.width * (svg.viewBox.baseVal.width || rect.width);
+  const t = chartGeom.start + (px - chartGeom.L) / (chartGeom.R - chartGeom.L) * (chartGeom.now - chartGeom.start);
+  let best = chartPoints[0];
+  for (const p of chartPoints) if (Math.abs(p[0] - t) < Math.abs(best[0] - t)) best = p;
+  const metric = weather.metrics[chartMetric];
+  const cx = chartGeom.x(best[0]), cy = chartGeom.y(best[1]);
+  const cursor = document.getElementById("cursor");
+  if (cursor) {
+    cursor.style.display = "";
+    document.getElementById("cur-line").setAttribute("x1", cx); document.getElementById("cur-line").setAttribute("x2", cx);
+    document.getElementById("cur-dot").setAttribute("cx", cx); document.getElementById("cur-dot").setAttribute("cy", cy);
+  }
+  const when = new Date(best[0] * 1000).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+  $("readout").textContent = `${when}: ${fmt(best[1], metric.decimals ?? 1)} ${metric.unit || ""}`;
+}
+$("chart").addEventListener("pointermove", (e) => readoutAt(e.clientX));
+$("chart").addEventListener("pointerdown", (e) => readoutAt(e.clientX));
+window.addEventListener("resize", drawChart);
+
+/* ---------------- Polling ---------------- */
+
+async function pollLive() {
+  try { renderLive(await getJSON("api/live")); }
+  catch (e) { const p = $("status"); p.className = "pill bad"; p.lastElementChild.textContent = "Can't reach the Jeep"; }
+}
+async function pollWeather() {
+  try { renderWeather(await getJSON("api/weather")); } catch (e) {}
+}
+
+buildTabs();
+pollLive(); pollWeather();
+setInterval(() => { if (!document.hidden) pollLive(); }, 3000);
+setInterval(() => { if (!document.hidden) pollWeather(); }, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { pollLive(); pollWeather(); } });
+</script>
+</body>
+</html>

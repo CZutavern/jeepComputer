@@ -1,0 +1,12 @@
+[Unit]
+Description=Jeep Computer UPS monitor (Geekworm X1209: shut down when vehicle power is off)
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -u /home/pi/jeep_computer/ups_monitor.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

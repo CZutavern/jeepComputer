@@ -1,0 +1,17 @@
+#!/bin/sh
+# Runs at the very end of shutdown (filesystems already read-only).
+# If the UPS monitor powered the Pi off because the vehicle was switched
+# off, but vehicle power came back during shutdown, reboot instead:
+# with POWER_OFF_ON_HALT=1 the Pi would otherwise stay off until the
+# next power cycle.
+[ "$1" = "poweroff" ] || exit 0
+[ -f /run/jeep-ups/shutdown-requested ] || exit 0
+# deep sleep (starting battery under the limit): stay off even though external power is present
+grep -q "^deep sleep" /run/jeep-ups/shutdown-requested 2>/dev/null && exit 0
+# 48 h station limit: also stay off until the X1209 button is pressed
+grep -q "h limit reached" /run/jeep-ups/shutdown-requested 2>/dev/null && exit 0
+
+if gpioget -c gpiochip0 6 2>/dev/null | grep -q '=active'; then
+    echo "jeep-ups: vehicle power is back, rebooting instead of powering off" > /dev/kmsg
+    echo b > /proc/sysrq-trigger
+fi

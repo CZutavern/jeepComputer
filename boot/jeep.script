@@ -1,0 +1,40 @@
+# Jeep Computer boot splash.
+#
+# The screen is mounted upside down and Plymouth draws before anything
+# rotates it, so splash-rotated.png is already turned 180 degrees and the
+# progress bar is mirrored: in the upright design it sits at y = 800
+# (420 px wide, centred) and fills left to right; here it sits at
+# 1080 - 800 - height from the top and fills right to left.
+
+screen_w = Window.GetWidth();
+screen_h = Window.GetHeight();
+sx = screen_w / 1920;
+sy = screen_h / 1080;
+
+Window.SetBackgroundTopColor(0.02, 0.04, 0.08);
+Window.SetBackgroundBottomColor(0.02, 0.04, 0.08);
+
+background = Sprite(Image("splash-rotated.png").Scale(screen_w, screen_h));
+background.SetZ(-100);
+
+bar_w = 420 * sx;
+bar_h = 6 * sy;
+bar_left = (screen_w - bar_w) / 2;
+bar_top = screen_h - 800 * sy - bar_h;
+
+track = Sprite(Image("bar-track.png").Scale(bar_w, bar_h));
+track.SetPosition(bar_left, bar_top, 1);
+
+fill_image = Image("bar-fill.png");
+fill = Sprite();
+fill.SetZ(2);
+
+fun progress_callback(duration, progress) {
+    width = Math.Int(bar_w * progress);
+    if (width < 1) width = 1;
+    fill.SetImage(fill_image.Scale(width, bar_h));
+    # Mirrored: grow from the right-hand end
+    fill.SetPosition(bar_left + bar_w - width, bar_top, 2);
+}
+
+Plymouth.SetBootProgressFunction(progress_callback);

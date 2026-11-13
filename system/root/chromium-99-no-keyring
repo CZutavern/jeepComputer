@@ -1,0 +1,4 @@
+# Jeep Computer: the desktop logs in automatically, so the GNOME keyring is
+# never unlocked and Chromium asked for its password on every start.
+# Store Chromium secrets without the keyring. Delete this file to go back.
+export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --password-store=basic"

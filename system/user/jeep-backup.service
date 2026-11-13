@@ -1,0 +1,9 @@
+[Unit]
+Description=Jeep Computer backup (weather history, config snapshot, USB drive, GitHub)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/pi/jeep_computer
+ExecStart=/home/pi/jeep_computer/.venv/bin/python -u tools/backup.py
+Nice=10
+IOSchedulingClass=idle

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Jeep Computer
+Description=Jeep Computer boot splash (pre-rotated for an upside-down screen)
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/jeep
+ScriptFile=/usr/share/plymouth/themes/jeep/jeep.script
