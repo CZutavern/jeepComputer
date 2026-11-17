@@ -1,6 +1,6 @@
 # Jeep Computer
 
-A custom in-dash digital dashboard, telemetry system, and active audio DSP suite for a 1979 Jeep CJ-7, powered by a Raspberry Pi 5.
+A custom in-dash digital dashboard, telemetry system, and active audio DSP suite for a 1975 Jeep Cherokee (SJ), powered by a Raspberry Pi 5.
 
 ![Dashboard Preview](assets/jeep-computer.svg)
 
