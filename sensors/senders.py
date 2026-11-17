@@ -253,6 +253,8 @@ DIVIDER = Divider(SUPPLY_V, PULLUP_OHMS)       # the default, for reference
 CURVES = {name: CURVE_TYPES[name]([(r, value) for r, value, v in points])
           for name, points in CALIBRATION.items()}
 CURVES["fuel"] = InterpCurve(load_fuel_points())
+from sensors.fuel_filter import FuelFilter   # noqa: E402
+FUEL_FILTER = FuelFilter()
 if COOLANT_ANCHOR:
     _ohms, _f = COOLANT_ANCHOR
     CURVES["coolant"].r_inf = _ohms / math.exp(CURVES["coolant"].beta / _f_to_k(_f))
@@ -274,7 +276,10 @@ def convert(name, voltage):
     if not SHORT_CIRCUIT_OHMS <= ohms <= OPEN_CIRCUIT_OHMS:
         return None
 
-    return CURVES[name].value(ohms)
+    value = CURVES[name].value(ohms)
+    if name == "fuel":
+        return FUEL_FILTER.update(value)       # hold through the warm-up, outliers out, only drops (sensors/fuel_filter.py)
+    return value
 
 
 def read_senders(sensor_data):

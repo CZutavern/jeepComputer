@@ -75,7 +75,7 @@ class EngineLogger:
     RUNNING_START_V = 13.2       # starting battery charging (the 2026-10-05 test: 13.1-13.9 V running vs 12.1-12.3 V key on)
     RUNNING_OIL_PSI = 15         # engine off reads up to ~9 psi until the supply is learned; running read 23+
     TRIP_END_S = 120
-    FUEL_SETTLE_S = 60           # fuel at the start: median of the first minute
+    FUEL_SETTLE_S = 180          # fuel at the start: the filter holds the old level for 120 s, so use the median after that
     ANCHOR_AFTER_KEY_ON_S = 15   # let the gauge regulator settle
     ANCHOR_AFTER_ENGINE_S = 90   # oil pressure bleeds off after the engine stops
     REFUEL_MIN_PCT = 8
@@ -219,7 +219,7 @@ class EngineLogger:
         """Fuel at the start of the trip, and a fill-up since the last one."""
         if self.fuel_start_done or self.trip is None or now - self.ignition_since < self.FUEL_SETTLE_S:
             return
-        start = _median(self.store.trip_samples(self.trip, "fuel_pct")[:6])
+        start = _median(self.store.trip_samples(self.trip, "fuel_pct")[-6:])
         if start is None:
             return
         fields = {"fuel_start": round(start, 1)}
