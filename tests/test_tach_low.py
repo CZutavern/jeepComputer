@@ -14,4 +14,4 @@ t.periods.clear(); t.last_tick=None
 for tick in (0, 120_000_000, 260_000_000):
     t._edge(tick)
 print("3 sparks only -> rpm", t.rpm(), "(0 until 4 sparks, but 'sparks' still counts them)")
-t.flush_events(); rows=open(T.EVENTS_FILE).read().splitlines(); print(len(rows), rows[:2])
+time.sleep(0.1); t.flush_events(); rows=open(T.EVENTS_FILE).read().splitlines(); print(len(rows), rows[:2])

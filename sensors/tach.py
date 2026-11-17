@@ -50,6 +50,10 @@ PERIODS = 8                  # median over the last N spark intervals
 # Every spark at cranking speed is written to EVENTS_FILE (time, ms since the previous spark), so a
 # start attempt can be reviewed afterwards: did the ignition fire, how often, how steady.
 # 40 ms between sparks = 375 rpm on a V8; above that (running) nothing is logged.
+# Both edges are read: the falling edge starts a spark (the coil's negative side flies up and the optocoupler
+# conducts), the rising edge ends it. The time between them (width_us) is how long the coil negative stayed
+# above the optocoupler's threshold, which follows the spark burn time and so the energy the coil stored.
+# A clue, not a measurement: there is no healthy-engine reference for this Jeep yet.
 EVENTS_FILE = Path.home() / ".local/share/jeep_computer/tach-events.csv"
 SLOW_LOG_NS = 40_000_000
 EVENTS_MAX_BYTES = 2_000_000
@@ -89,7 +93,9 @@ class Tach:
         self.last_spark = None         # time.monotonic()
         self.sparks = 0
         self.restarts = 0              # watchdog re-opens of the GPIO line
-        self.events = deque(maxlen=5000)   # (wall time, ms since the previous spark or None), slow sparks only
+        self.events = deque(maxlen=5000)   # [wall time, ms since the previous spark or None, width us or None], slow sparks only
+        self.fall_tick = None              # ns of the falling edge still waiting for its rising edge
+        self.widths = deque(maxlen=PERIODS)  # recent pulse widths in us
 
         self.request = None
         self.stopping = threading.Event()
@@ -106,7 +112,7 @@ class Tach:
         self.request = gpiod.request_lines(CHIP, consumer="jeep-tach", config={
             self.pin: gpiod.LineSettings(
                 direction=Direction.INPUT,
-                edge_detection=Edge.FALLING,
+                edge_detection=Edge.BOTH,
                 bias=Bias.PULL_UP,
                 **extra,
             )
@@ -137,7 +143,10 @@ class Tach:
                 if self.request.wait_edge_events(timedelta(milliseconds=200)):
                     events = self.request.read_edge_events()
                     for event in events:
-                        self._edge(event.timestamp_ns)
+                        if event.event_type == event.Type.RISING_EDGE:
+                            self._rise(event.timestamp_ns)
+                        else:
+                            self._edge(event.timestamp_ns)
                     if events:
                         last_event = time.monotonic()
                 self.flush_events()
@@ -167,15 +176,31 @@ class Tach:
                 if period < STOPPED_S * 1e9:
                     self.periods.append(period)
             if self.last_tick is None or period >= SLOW_LOG_NS:
-                self.events.append((time.time(), None if self.last_tick is None else round(period / 1e6, 1)))
+                self.events.append([time.time(), None if self.last_tick is None else round(period / 1e6, 1), None])
+            self.fall_tick = tick
             self.last_tick = tick
             self.last_spark = time.monotonic()
             self.sparks += 1
 
+    def _rise(self, tick):
+        """Rising edge: the spark ended. Record how long it lasted."""
+        with self.lock:
+            if self.fall_tick is None:
+                return
+            width = tick - self.fall_tick
+            self.fall_tick = None
+            if not 0 < width < 20_000_000:        # longer than 20 ms is not a spark
+                return
+            self.widths.append(width / 1000.0)
+            if self.events and self.events[-1][2] is None:
+                self.events[-1][2] = round(width / 1000.0)
+
     def flush_events(self):
         """Append the cranking-speed sparks to EVENTS_FILE (called from the watch loop)."""
         with self.lock:
-            batch, self.events = list(self.events), deque(maxlen=5000)
+            # leave the newest spark for the next call so its rising edge can still add the width
+            batch = [e for e in self.events if time.time() - e[0] > 0.05]
+            self.events = deque((e for e in self.events if time.time() - e[0] <= 0.05), maxlen=5000)
         if not batch:
             return
         try:
@@ -183,9 +208,9 @@ class Tach:
             if EVENTS_FILE.exists() and EVENTS_FILE.stat().st_size > EVENTS_MAX_BYTES:
                 EVENTS_FILE.replace(EVENTS_FILE.with_suffix(".csv.1"))
             with EVENTS_FILE.open("a") as f:
-                for ts, ms in batch:
+                for ts, ms, width in batch:
                     stamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
-                    f.write(f"{stamp}.{int(ts % 1 * 1000):03d},{'' if ms is None else ms}\n")
+                    f.write(f"{stamp}.{int(ts % 1 * 1000):03d},{'' if ms is None else ms},{'' if width is None else width}\n")
         except OSError:
             pass
 
@@ -203,8 +228,9 @@ class Tach:
         rpm = self.rpm()
         with self.lock:
             age = None if self.last_spark is None else round(time.monotonic() - self.last_spark, 1)
+            width = round(statistics.median(self.widths)) if self.widths else None
         return {"rpm": None if rpm is None else round(rpm), "sparks": self.sparks, "restarts": self.restarts,
-                "last_spark_age_s": age}
+                "last_spark_age_s": age, "width_us": width}
 
     def close(self):
         self.stopping.set()
