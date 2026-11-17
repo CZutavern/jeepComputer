@@ -41,8 +41,11 @@ DEFAULTS = {"pin": 12, "cylinders": 8, "gauge_max": 6000, "redline": 4500}
 RESERVED_PINS = {4, 5, 6, 10, 16, 17} | set(range(18, 28))
 
 LOCKOUT_NS = 1_000_000       # ignore edges < 1 ms apart (points bounce, coil ringing)
-DEBOUNCE_US = 100            # level must hold this long to count
+DEBOUNCE_US = 0              # kernel debounce OFF: with 100 us the RP1 delivered no edges at all on the running
+                             # engine's clean 36 Hz signal (measured 2026-10-15: 0 events vs 74 without it).
+                             # Bounce/ringing is handled by LOCKOUT_NS below.
 STOPPED_S = 1.0              # no spark for this long = engine stopped
+WATCHDOG_S = 2.0             # line is changing but no edge events for this long = reader stuck, re-open it
 PERIODS = 8                  # median over the last N spark intervals
 
 
@@ -79,6 +82,7 @@ class Tach:
         self.last_tick = None          # ns, kernel event timestamp
         self.last_spark = None         # time.monotonic()
         self.sparks = 0
+        self.restarts = 0              # watchdog re-opens of the GPIO line
 
         self.request = None
         self.stopping = threading.Event()
@@ -86,27 +90,64 @@ class Tach:
             raise RuntimeError("gpiod not available")
 
         # Pull-up keeps an unconnected input quiet (no phantom RPM)
+        self._open()
+        self.thread = threading.Thread(target=self._watch, name="tach", daemon=True)
+        self.thread.start()
+
+    def _open(self):
+        extra = {"debounce_period": timedelta(microseconds=DEBOUNCE_US)} if DEBOUNCE_US else {}
         self.request = gpiod.request_lines(CHIP, consumer="jeep-tach", config={
             self.pin: gpiod.LineSettings(
                 direction=Direction.INPUT,
                 edge_detection=Edge.FALLING,
                 bias=Bias.PULL_UP,
-                debounce_period=timedelta(microseconds=DEBOUNCE_US),
+                **extra,
             )
         })
-        self.thread = threading.Thread(target=self._watch, name="tach", daemon=True)
-        self.thread.start()
+
+    def _reopen(self, why):
+        """Release and re-request the line, so a reader that stopped getting events starts again."""
+        print(f"tach: re-opening GPIO {self.pin} ({why})", flush=True)
+        self.restarts += 1
+        try:
+            self.request.release()
+        except Exception:
+            pass
+        for _ in range(5):
+            try:
+                self._open()
+                return
+            except Exception as e:
+                print("tach: re-open failed:", e, flush=True)
+                time.sleep(1)
 
     def _watch(self):
+        last_event = time.monotonic()       # last time an edge event arrived
+        last_level = None
+        changed = 0.0                       # last time the line level was seen to change
         while not self.stopping.is_set():
             try:
-                if self.request.wait_edge_events(timedelta(milliseconds=500)):
-                    for event in self.request.read_edge_events():
+                if self.request.wait_edge_events(timedelta(milliseconds=200)):
+                    events = self.request.read_edge_events()
+                    for event in events:
                         self._edge(event.timestamp_ns)
+                    if events:
+                        last_event = time.monotonic()
+                # Watchdog: the pin is toggling but no events are arriving. The reader is stuck
+                # (seen 2026-10-15: counted while cranking, then stayed at 0 with the engine running).
+                level = self.request.get_value(self.pin)
+                now = time.monotonic()
+                if last_level is not None and level != last_level:
+                    changed = now
+                last_level = level
+                if now - changed < 0.5 and now - last_event > WATCHDOG_S:
+                    self._reopen("pin is toggling but no edge events")
+                    last_event = changed = time.monotonic()
             except Exception as e:
                 if not self.stopping.is_set():
                     print("tach: read error:", e, flush=True)
                     time.sleep(1)
+                    self._reopen("read error")
 
     def _edge(self, tick):
         with self.lock:
@@ -133,7 +174,7 @@ class Tach:
 
     def read(self):
         rpm = self.rpm()
-        return {"rpm": None if rpm is None else round(rpm), "sparks": self.sparks}
+        return {"rpm": None if rpm is None else round(rpm), "sparks": self.sparks, "restarts": self.restarts}
 
     def close(self):
         self.stopping.set()

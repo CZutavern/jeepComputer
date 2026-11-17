@@ -10,6 +10,7 @@ class ElectricalPage(DashboardPage):
 
         self.cards = {
             "battery_voltage": GaugeCard("Start Battery", "V", 11.0, 15.0),
+            "house_voltage": GaugeCard("House Bank (INA238)", "V", 11.0, 15.0),
             "rpm": GaugeCard("Engine", "rpm"),
             "key": GaugeCard("Ignition Key"),
             "charging": GaugeCard("Charging"),
@@ -87,6 +88,10 @@ class ElectricalPage(DashboardPage):
         lux = reading(data, "light", "lux")
 
         self.cards["battery_voltage"].set_value(format_value(voltage, 2))
+        house = reading(data, "power", "voltage")
+        self.cards["house_voltage"].set_value(format_value(house, 2))
+        self.cards["house_voltage"].set_status(
+            "normal" if house is None else "critical" if house < 11.8 else "warning" if house < 12.2 else "good")
         self.cards["rpm"].set_value(format_value(rpm, 0))
         self.cards["lux"].set_value(format_value(lux, 0))
 

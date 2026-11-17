@@ -19,6 +19,9 @@ from sensors.live import write_live
 
 
 WEATHER_SENSORS = ("outside", "pressure", "light")
+# "analog" is read too, only so the starting-battery voltage (A3) is in the live snapshot: with ups.json
+# vehicle_signal "battery" the UPS monitor decides from it when the engine is running again.
+STATION_SENSORS = WEATHER_SENSORS + ("analog",)
 READ_INTERVAL_S = 1.0
 RETRY_INTERVAL_S = 60.0
 
@@ -33,7 +36,7 @@ def main():
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
 
-    manager = SensorManager(only=WEATHER_SENSORS)
+    manager = SensorManager(only=STATION_SENSORS)
     logger = WeatherLogger(moving=False)   # parked while the Jeep is off
 
     print("Weather station logging (vehicle off)", flush=True)

@@ -36,6 +36,12 @@ Testing without cutting power
   While simulating, nothing ever really shuts down; it's only logged.
 
 Vehicle-on signal (ups.json "vehicle_signal")
+  "battery" (added 2026-10-15, for while the ACC circuit is out of service) the starting-battery
+         voltage on ADS1115 A3, read from the dashboard's live snapshot (the monitor never touches the
+         I2C bus). ON as soon as it is at or above battery_on_v (default 13.2 V = alternator charging),
+         OFF after it has stayed below battery_off_v (default 12.9 V) for battery_off_s (default 120 s).
+         This means "engine running", not "key on": key on with the engine off reads about 12.5 V, so
+         the Jeep counts as off. If the snapshot is stale or has no reading, GPIO 6 is used.
   "ups"  (default) the X1209 power-loss line, GPIO 6, as always.
   "acc"  the ignition-key state from the ACC-sense input (GPIO 10, filtered
          by sensors/acc.py: 2 s of key-off before it counts, so cranking
@@ -70,6 +76,15 @@ Always-on power (UPS input fed from the house bank, ACC says when the Jeep is on
   ACC unreadable falls back to GPIO 6, which is high while external power is present,
   so a broken ACC input keeps the Jeep in vehicle mode rather than halting.
 
+Deep sleep (ups.json "deep_sleep_below_v", added 2026-10-24)
+  When the starting-battery voltage (ADS1115 A3, raw reading from the dashboard's live snapshot, so a
+  0 V "not connected" reading counts) stays under `deep_sleep_below_v` (5 V) for `deep_sleep_after_s`
+  (120 s), the Pi does a clean shutdown with NO RTC wake alarm and the power-restored hook does not
+  reboot it: it stays off (a few mW) until the X1209 button is pressed. Works in every mode. A stale
+  snapshot, a missing reading or one above the 18 V "floating input" limit never triggers it. null = off.
+  To use the Pi while the reading is under 5 V (bench), set "deep_sleep_below_v": null and restart jeep-ups.
+  status.json carries deep_sleep_in_s (seconds left) while the countdown runs.
+
 Status for the dashboard: /run/jeep-ups/status.json
 Settings: ~/.config/jeep_computer/ups.json
 """
@@ -97,6 +112,7 @@ RTC_WAKEALARM = Path("/sys/class/rtc/rtc0/wakealarm")
 SHUTDOWN_MARKER = RUN_DIR / "shutdown-requested"
 SIMULATE_FILE = RUN_DIR / "simulate-vehicle-off"
 SETTINGS_FILE = Path(f"/home/{USER}/.config/jeep_computer/ups.json")
+LIVE_FILE = Path("/run/user/1000/jeep-live.json")   # the dashboard's live sensor snapshot
 
 USER = os.environ.get("JEEP_USER", "pi")
 USER_RUNTIME = f"/run/user/{os.environ.get('JEEP_UID', '1000')}"
@@ -138,6 +154,10 @@ DEFAULT_SETTINGS = {
     "vehicle_signal": "ups",
     # Station time limit reached: wait this long (key on cancels) before the halt command
     "halt_countdown_s": 60,
+    # Deep sleep: starting-battery voltage under this for deep_sleep_after_s -> clean shutdown, no wake alarm,
+    # stays off until the X1209 button. None = off (see module doc)
+    "deep_sleep_below_v": None,
+    "deep_sleep_after_s": 120,
 }
 ACC_SETTINGS_FILE = Path(f"/home/{USER}/.config/jeep_computer/acc.json")
 ACC_SHARED_FILE = RUN_DIR / "acc.json"
@@ -244,6 +264,10 @@ class UpsMonitor:
         self.halt_at = None              # monotonic time of the pending station time-limit shutdown
         self.acc = None                  # sensors/acc.py reader, only for vehicle_signal "acc"
         self.acc_retry_at = 0.0
+        self.bat_on = None               # vehicle_signal "battery": filtered engine-running state
+        self.bat_since = time.monotonic()
+        self.bat_low_since = None
+        self.deep_since = None           # monotonic time the starting battery first read under deep_sleep_below_v
 
         self.gauge = FuelGauge()
         self.mode = "vehicle"
@@ -290,6 +314,91 @@ class UpsMonitor:
                 pass
         return self.gauge.read()
 
+    def battery_key_on(self):
+        """vehicle_signal "battery": filtered state from the A3 starting-battery voltage, or None."""
+        snap = None
+        try:
+            snap = json.loads(Path("/run/user/1000/jeep-live.json").read_text())
+            sensors = snap.get("sensors") or {}
+            battery = sensors.get("battery") or {}
+            volts = (battery.get("data") or {}).get("voltage") if battery.get("status") == "OK" else None
+            fresh = time.time() - float(snap.get("time", 0)) < 10
+        except (OSError, ValueError, TypeError, AttributeError):
+            return None
+        if volts is None and fresh:
+            # Ignition-switched A3: key off reads ~0 V, which the sensor reports as "not connected" (voltage None).
+            # Use the raw pin reading so that counts as OFF instead of leaving the old state stuck.
+            volts = self.start_battery_volts()
+        if volts is None or not fresh:
+            return None
+        now = time.monotonic()
+        on_v = float(self.settings.get("battery_on_v", 13.2))
+        off_v = float(self.settings.get("battery_off_v", 12.9))
+        off_s = float(self.settings.get("battery_off_s", 120))
+        if self.bat_on is None:                      # first reading after start
+            self.bat_on = volts >= on_v
+            self.bat_since = now
+        if volts >= on_v:
+            self.bat_low_since = None
+            if not self.bat_on:
+                self.bat_on, self.bat_since = True, now
+        elif volts < off_v:
+            self.bat_low_since = self.bat_low_since or now
+            if self.bat_on and now - self.bat_low_since >= off_s:
+                self.bat_on, self.bat_since = False, now
+        else:                                        # between the two: keep the state
+            self.bat_low_since = None
+        state = {"key_on": self.bat_on, "raw": volts >= on_v, "since_s": round(now - self.bat_since, 1)}
+        try:
+            tmp = ACC_SHARED_FILE.with_suffix(".tmp")
+            tmp.write_text(json.dumps({**state, "time": time.time()}))
+            tmp.chmod(0o644)
+            tmp.replace(ACC_SHARED_FILE)
+        except OSError:
+            pass
+        return self.bat_on
+
+    def start_battery_volts(self):
+        """Starting-battery volts for the deep-sleep rule from the snapshot's raw A3 reading, or None.
+        Unlike battery_key_on this accepts the "not connected" error state (A3 = 0 V reads 0 V here), because
+        that is exactly what the rule must catch. A stale snapshot, no reading, or a floating/miswired input
+        reading far above a real battery gives a value the caller will not act on."""
+        try:
+            snap = json.loads(LIVE_FILE.read_text())
+            if time.time() - float(snap.get("time", 0)) >= 10:
+                return None
+            data = ((snap.get("sensors") or {}).get("battery") or {}).get("data") or {}
+            a3 = data.get("a3_volts")
+            if a3 is None:
+                return None
+            from sensors import battery as battery_module
+            b = battery_module.load_settings()
+            return float(a3) / float(b["divider"]) * float(b["scale"]) + float(b["offset_v"])
+        except (OSError, ValueError, TypeError, KeyError, ZeroDivisionError, AttributeError):
+            return None
+
+    def deep_sleep_check(self, now, armed):
+        """Deep-sleep rule. Returns seconds left in the countdown, or None when it is not counting."""
+        limit = self.settings.get("deep_sleep_below_v")
+        if limit is None or not armed or self.shutting_down:
+            self.deep_since = None
+            return None
+        volts = self.start_battery_volts()
+        if volts is None or volts >= float(limit) or volts > 18.0:
+            if self.deep_since is not None:
+                print("Starting battery reading back to normal: deep-sleep countdown cancelled", flush=True)
+            self.deep_since = None
+            return None
+        if self.deep_since is None:
+            self.deep_since = now
+            print(f"Starting battery {volts:.2f} V is under {limit} V: deep sleep in "
+                  f"{self.settings.get('deep_sleep_after_s', 120)} s unless it recovers", flush=True)
+        left = max(0.0, float(self.settings.get("deep_sleep_after_s", 120)) - (now - self.deep_since))
+        if left <= 0:
+            self.shutdown(f"deep sleep: starting battery {volts:.2f} V is under {limit} V; the Pi stays OFF "
+                          f"until the X1209 button is pressed", wake_alarm=False)
+        return left
+
     def acc_key_on(self):
         """Filtered ACC key state, or None if the input can't be read."""
         try:
@@ -325,7 +434,8 @@ class UpsMonitor:
             return False
         from sensors.acc import pick_vehicle_power
         signal = self.settings.get("vehicle_signal", "ups")
-        acc = self.acc_key_on() if signal == "acc" else None
+        acc = (self.acc_key_on() if signal == "acc"
+               else self.battery_key_on() if signal == "battery" else None)
         return pick_vehicle_power(signal, acc, lgpio.gpio_read(self.gpio, PLD_GPIO) == 1)
 
     # ---------------------------------------------------------
@@ -418,7 +528,7 @@ class UpsMonitor:
         self.mode = "vehicle"
         self.station_since = None
 
-    def shutdown(self, reason):
+    def shutdown(self, reason, wake_alarm=True):
         if self.simulating():
             if self.simulated_shutdown != reason:
                 print(f"SIMULATION: would shut down now ({reason})", flush=True)
@@ -436,7 +546,7 @@ class UpsMonitor:
         user_systemctl("stop", "jeep-weather-station.service")   # flushes the last minute
         # The X1209 no longer cuts power on halt (POWER_OFF_ON_HALT=0, so sleep cycles can
         # wake), so without an alarm the Pi would stay halted even after the Jeep starts.
-        set_wakealarm(int(self.settings["shutdown_wake_min"] * 60))
+        set_wakealarm(int(self.settings["shutdown_wake_min"] * 60) if wake_alarm else 0)
         SHUTDOWN_MARKER.write_text(reason)
         subprocess.run(["systemctl", "poweroff"], check=False)
 
@@ -598,6 +708,7 @@ class UpsMonitor:
 
         on_battery_for = 0 if powered else now - self.on_battery_since
         armed = uptime() >= BOOT_HOLDOFF_S
+        deep_in = self.deep_sleep_check(now, armed)
         action_in = None
         grace_action = None
         hours_left = None
@@ -653,7 +764,7 @@ class UpsMonitor:
                               f"{s['halt_countdown_s']} s unless the key comes on", flush=True)
                     elif now >= self.halt_at:
                         self.shutdown(f"station mode: {max_hours} h limit reached; the Pi stays OFF "
-                                      f"until the X1209 button is pressed (power is always on)")
+                                      f"until the X1209 button is pressed (power is always on)", wake_alarm=False)
 
         station_hours_now = None if self.station_since is None else (now - self.station_since) / 3600
         max_h = s.get("station_max_hours")
@@ -698,6 +809,8 @@ class UpsMonitor:
             vehicle_signal=self.settings.get("vehicle_signal", "ups"),
             duty_cycle=self.settings["duty_cycle"],
             duty_verified=self.duty_verified,
+            deep_sleep_below_v=self.settings.get("deep_sleep_below_v"),
+            deep_sleep_in_s=None if deep_in is None else round(deep_in),
         )
 
     def write_status(self, **status):

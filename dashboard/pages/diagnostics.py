@@ -14,6 +14,7 @@ SENSOR_LABELS = {
     "outside": "Outside SHT45",
     "pressure": "Baro BMP388",
     "light": "Light TSL2591",
+    "power": "House bank INA238",
     "analog": "Analog ADS1115",
     "imu": "IMU BNO085",
 }
@@ -31,7 +32,7 @@ class SectionLabel(QLabel):
 
 SENSOR_ADDRESS = {
     "amp_box": "0x18", "outside": "0x44", "pressure": "0x77", "light": "0x29",
-    "analog": "0x48", "imu": "0x4A", "tach": "GPIO 12", "acc": "GPIO 10", "battery": "ADS A3",
+    "power": "0x40", "analog": "0x48", "imu": "0x4A", "tach": "GPIO 12", "acc": "GPIO 10", "battery": "ADS A3",
 }
 SENSOR_LABELS["tach"] = "Tach (HEI)"
 SENSOR_LABELS["acc"] = "Key (ACC)"
@@ -72,6 +73,10 @@ def sensor_detail(name, info):
         return True, f"{_num(data.get('pressure'), '.1f')} hPa · {_num(data.get('temperature_c'), '.1f')} °C"
     if name == "light":
         return True, f"{_num(data.get('lux'), ',.0f')} lx"
+    if name == "power":
+        if data.get("voltage") is None:
+            return None, "No voltage on VIN+"
+        return True, f"{_num(data.get('voltage'), '.2f')} V (voltage only)"
     if name == "battery":
         return True, f"{_num(data.get('voltage'), '.2f')} V · A3 {_num(data.get('a3_volts'), '.2f')} V"
     if name == "acc":
@@ -244,6 +249,11 @@ class DiagnosticsPage(DashboardPage):
         rows = []
         for name in list(SENSOR_LABELS):
             ok, detail = sensor_detail(name, data.get(name))
+            if name == "battery" and ok is not True:
+                # Show the raw A3 pin voltage even when the battery reading is rejected, to help wiring checks
+                a3 = (((data.get("analog") or {}).get("data") or {}).get("A3") or {}).get("voltage")
+                if a3 is not None:
+                    detail = f"A3 {a3:.2f} V · {detail}"
             rows.append((SENSOR_LABELS[name], SENSOR_ADDRESS.get(name, ""), ok, detail))
         ok, detail = self.i2c_health
         rows.append(("I2C bus", "GPIO 2 / 3", ok, detail))

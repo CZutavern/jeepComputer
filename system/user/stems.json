@@ -1,6 +1,6 @@
 {
   "preset": "surround",
-  "master_db": 0.0,
+  "master_db": -3.0,
   "carplay_mute": false,
   "stems_mute": false,
   "seat": "passenger",

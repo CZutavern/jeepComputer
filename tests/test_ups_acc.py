@@ -105,7 +105,8 @@ def make(settings, cell=(3.9, 90.0)):
     m.write_status = lambda **kw: m.status.update(kw)
     real_shutdown = ups.UpsMonitor.shutdown
     m.shutdown_reasons = []
-    m.shutdown = lambda reason: m.shutdown_reasons.append(reason)
+    m.shutdown = lambda reason, **kw: m.shutdown_reasons.append(reason)
+    m.deep_since = None
     return m
 
 
@@ -215,6 +216,69 @@ m2.shutdown("test")
 m2.shutdown("test again")
 check("poweroff issued once and the monitor is shutting down", issued == [["systemctl", "poweroff"]]
       and m2.mode == "shutting_down" and m2.shutting_down)
+
+# --- deep sleep: starting battery under 5 V ------------------------------------------
+import json
+import sensors.battery as bat_module
+bat_module.SETTINGS = tmp / "no-battery-settings.json"          # default divider/scale
+ups.LIVE_FILE = tmp / "live.json"
+
+
+def live(a3, age=0.0, status="ERROR"):
+    ups.LIVE_FILE.write_text(json.dumps({"time": clock.t - age, "sensors": {"battery": {
+        "status": status, "data": {"voltage": None, "a3_volts": a3}}}}))
+
+
+def live_steps(m, seconds, a3, age=0.0):
+    for _ in range(int(seconds)):
+        clock.t += 1
+        live(a3, age)
+        m.step()
+
+
+DEEP = {**ALWAYS_ON, "deep_sleep_below_v": 5.0, "deep_sleep_after_s": 120}
+m = make(DEEP)
+m.acc.key_on = True
+live_steps(m, 100, 0.0)
+check("0 V for 100 s: countdown running, no shutdown yet",
+      not m.shutdown_reasons and 15 <= m.status["deep_sleep_in_s"] <= 25, str(m.status.get("deep_sleep_in_s")))
+live_steps(m, 30, 0.0)
+check("0 V for 2 min: deep-sleep shutdown that says it stays off",
+      m.shutdown_reasons and "deep sleep" in m.shutdown_reasons[0] and "X1209 button" in m.shutdown_reasons[0],
+      str(m.shutdown_reasons[:1]))
+
+m = make(DEEP)
+m.acc.key_on = True
+live_steps(m, 90, 0.0)
+live_steps(m, 5, 2.27)                                            # 12.6 V is back
+check("voltage back above 5 V cancels the countdown", m.deep_since is None and m.status["deep_sleep_in_s"] is None)
+live_steps(m, 200, 2.27)
+check("a normal 12.6 V battery never triggers it", not m.shutdown_reasons)
+
+m = make(DEEP)
+m.acc.key_on = True
+live_steps(m, 400, 0.0, age=30)
+check("a stale snapshot never triggers it", not m.shutdown_reasons and m.deep_since is None)
+
+m = make(DEEP)
+m.acc.key_on = True
+live_steps(m, 400, 3.5)
+check("a floating input (about 19 V) never triggers it", not m.shutdown_reasons)
+
+m = make({**ALWAYS_ON, "deep_sleep_below_v": None})
+m.acc.key_on = True
+live_steps(m, 400, 0.0)
+check("setting null turns the rule off", not m.shutdown_reasons and m.status["deep_sleep_in_s"] is None)
+
+alarms = []
+ups.set_wakealarm = lambda s: alarms.append(s) or True
+issued.clear()
+m3 = make(DEEP)
+m3.shutdown = types.MethodType(real, m3)
+m3.settings["shutdown_wake_min"] = 30
+m3.shutdown("deep sleep: test", wake_alarm=False)
+check("deep-sleep shutdown clears the RTC wake alarm (stays off)", alarms == [0] and issued == [["systemctl", "poweroff"]],
+      str(alarms))
 
 print(f"\n{sum(results)}/{len(results)} passed")
 sys.exit(0 if all(results) else 1)

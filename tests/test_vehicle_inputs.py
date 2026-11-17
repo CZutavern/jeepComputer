@@ -144,7 +144,7 @@ except Exception as e:                       # development machine without the I
 
 if SensorManager is not None:
     names = [n for n, _ in SensorManager.ALL_SENSORS]
-    check("INA238 is not in the sensor list", "power" not in names and "analog" in names, str(names))
+    check("INA238 (voltage only, 2026-10-15) and ADS1115 are in the sensor list", "power" in names and "analog" in names, str(names))
 
     class FakeAnalog:
         def read(self):

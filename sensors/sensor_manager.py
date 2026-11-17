@@ -7,6 +7,7 @@ from .sht45 import SHT45
 from .bmp388 import BMP388
 from .tsl2591 import TSL2591
 from .ads1115 import ADS1115
+from .ina238 import INA238
 from .bno085 import BNO085, hold_reset
 from .tach import Tach
 from .acc import open_acc
@@ -21,7 +22,7 @@ class SensorManager:
         ("outside", SHT45),
         ("pressure", BMP388),       # also the cabin temperature
         ("light", TSL2591),
-        # The INA238 power monitor ("power") is retired (burned out 2026-10); sensors/ina238.py is kept, unused.
+        ("power", INA238),          # house-bank voltage on VIN+ (voltage only: its shunt is out, see ina238.py)
         ("analog", ADS1115),
     ]
 

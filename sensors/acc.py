@@ -161,7 +161,7 @@ def pick_vehicle_power(signal, acc_key_on, pld_high):
     acc_key_on   filtered ACC key state, or None when it can't be read
     pld_high     the X1209 power-loss line (GPIO 6) is high
     """
-    if signal == "acc" and acc_key_on is not None:
+    if signal in ("acc", "battery") and acc_key_on is not None:
         return bool(acc_key_on)
     return bool(pld_high)
 
@@ -169,7 +169,7 @@ def pick_vehicle_power(signal, acc_key_on, pld_high):
 def _ups_owns_acc():
     """True when ups.json hands the ignition-key line to the UPS monitor ("vehicle_signal": "acc")."""
     try:
-        return json.loads((Path.home() / ".config/jeep_computer/ups.json").read_text()).get("vehicle_signal") == "acc"
+        return json.loads((Path.home() / ".config/jeep_computer/ups.json").read_text()).get("vehicle_signal") in ("acc", "battery")
     except (OSError, ValueError):
         return False
 
