@@ -47,6 +47,12 @@ DEBOUNCE_US = 0              # kernel debounce OFF: with 100 us the RP1 delivere
 STOPPED_S = 1.0              # no spark for this long = engine stopped
 WATCHDOG_S = 2.0             # line is changing but no edge events for this long = reader stuck, re-open it
 PERIODS = 8                  # median over the last N spark intervals
+# Every spark at cranking speed is written to EVENTS_FILE (time, ms since the previous spark), so a
+# start attempt can be reviewed afterwards: did the ignition fire, how often, how steady.
+# 40 ms between sparks = 375 rpm on a V8; above that (running) nothing is logged.
+EVENTS_FILE = Path.home() / ".local/share/jeep_computer/tach-events.csv"
+SLOW_LOG_NS = 40_000_000
+EVENTS_MAX_BYTES = 2_000_000
 
 
 def load_settings():
@@ -83,6 +89,7 @@ class Tach:
         self.last_spark = None         # time.monotonic()
         self.sparks = 0
         self.restarts = 0              # watchdog re-opens of the GPIO line
+        self.events = deque(maxlen=5000)   # (wall time, ms since the previous spark or None), slow sparks only
 
         self.request = None
         self.stopping = threading.Event()
@@ -133,6 +140,7 @@ class Tach:
                         self._edge(event.timestamp_ns)
                     if events:
                         last_event = time.monotonic()
+                self.flush_events()
                 # Watchdog: the pin is toggling but no events are arriving. The reader is stuck
                 # (seen 2026-10-15: counted while cranking, then stayed at 0 with the engine running).
                 level = self.request.get_value(self.pin)
@@ -158,9 +166,28 @@ class Tach:
                 # A gap longer than "stopped" isn't a running period
                 if period < STOPPED_S * 1e9:
                     self.periods.append(period)
+            if self.last_tick is None or period >= SLOW_LOG_NS:
+                self.events.append((time.time(), None if self.last_tick is None else round(period / 1e6, 1)))
             self.last_tick = tick
             self.last_spark = time.monotonic()
             self.sparks += 1
+
+    def flush_events(self):
+        """Append the cranking-speed sparks to EVENTS_FILE (called from the watch loop)."""
+        with self.lock:
+            batch, self.events = list(self.events), deque(maxlen=5000)
+        if not batch:
+            return
+        try:
+            EVENTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            if EVENTS_FILE.exists() and EVENTS_FILE.stat().st_size > EVENTS_MAX_BYTES:
+                EVENTS_FILE.replace(EVENTS_FILE.with_suffix(".csv.1"))
+            with EVENTS_FILE.open("a") as f:
+                for ts, ms in batch:
+                    stamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
+                    f.write(f"{stamp}.{int(ts % 1 * 1000):03d},{'' if ms is None else ms}\n")
+        except OSError:
+            pass
 
     def rpm(self):
         """RPM, 0 when stopped, None if no spark has ever been seen (not wired)."""
@@ -174,7 +201,10 @@ class Tach:
 
     def read(self):
         rpm = self.rpm()
-        return {"rpm": None if rpm is None else round(rpm), "sparks": self.sparks, "restarts": self.restarts}
+        with self.lock:
+            age = None if self.last_spark is None else round(time.monotonic() - self.last_spark, 1)
+        return {"rpm": None if rpm is None else round(rpm), "sparks": self.sparks, "restarts": self.restarts,
+                "last_spark_age_s": age}
 
     def close(self):
         self.stopping.set()
