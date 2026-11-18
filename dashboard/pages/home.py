@@ -5,6 +5,7 @@ from dashboard.widgets.arc_gauge import ArcGauge
 from dashboard.theme import COLORS, format_value
 from dashboard.pages.base import DashboardPage, reading, online
 
+from dashboard.key_on_idle import KeyOnIdle
 from sensors.senders import read_senders
 from sensors.tach import gauge_scale
 
@@ -45,6 +46,7 @@ class HomePage(DashboardPage):
 
         self.fuel_smoothed = None
         self.oil_built = False
+        self.key_on_idle = KeyOnIdle()      # key on with the engine stopped (coil/module stay powered)
 
         # (level, message) for the dashboard-wide alert banner, or None
         self.alert = None
@@ -220,6 +222,10 @@ class HomePage(DashboardPage):
         else:
             engine_running = self.oil_built
 
+        analog_ok = (data.get("analog") or {}).get("status") == "OK"
+        idle_level = KeyOnIdle.level(self.key_on_idle.update(
+            analog_ok, self.ignition_off(data), engine_running, values["rpm"]))
+
         # --------------------
         # Card status colours
         # --------------------
@@ -266,6 +272,10 @@ class HomePage(DashboardPage):
         elif coolant is not None and coolant > self.COOLANT_WARNING_F:
             self.status.set_value("ENGINE HOT")
             self.status.set_status("warning")
+
+        elif idle_level is not None:
+            self.status.set_value("KEY ON, ENGINE OFF")
+            self.status.set_status(idle_level)
 
         elif voltage is not None and voltage < 12.0:
             self.status.set_value("LOW BATTERY")
