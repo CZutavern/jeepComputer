@@ -5,7 +5,8 @@ from dashboard.widgets.arc_gauge import ArcGauge
 from dashboard.theme import COLORS, format_value
 from dashboard.pages.base import DashboardPage, reading, online
 
-from dashboard.key_on_idle import KeyOnIdle
+from audio import chime
+from dashboard.key_on_idle import KeyOnIdle, fuel_gauge_off
 from sensors.senders import read_senders
 from sensors.tach import gauge_scale
 
@@ -223,8 +224,11 @@ class HomePage(DashboardPage):
             engine_running = self.oil_built
 
         analog_ok = (data.get("analog") or {}).get("status") == "OK"
-        idle_level = KeyOnIdle.level(self.key_on_idle.update(
-            analog_ok, self.ignition_off(data), engine_running, values["rpm"]))
+        idle_s = self.key_on_idle.update(
+            analog_ok, fuel_gauge_off((data.get("analog") or {}).get("data")), engine_running, values["rpm"])
+        idle_level = KeyOnIdle.level(idle_s)
+        if self.key_on_idle.chime_due(idle_s):
+            chime.play_async()
 
         # --------------------
         # Card status colours
