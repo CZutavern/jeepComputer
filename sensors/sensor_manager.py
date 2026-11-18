@@ -10,6 +10,7 @@ from .ads1115 import ADS1115
 from .ina238 import INA238
 from .bno085 import BNO085, hold_reset
 from .tach import Tach
+from .gps import GPSReceiver
 from .acc import open_acc
 from . import battery
 
@@ -60,6 +61,14 @@ class SensorManager:
                 self.tach = Tach()
             except Exception as e:
                 print("tach: FAILED -", e, flush=True)
+
+        # GPS (USB dongle) with a Wi-Fi position until it has a fix: serial port, not an I2C device
+        self.gps = None
+        if only is None or "gps" in only:
+            try:
+                self.gps = GPSReceiver()
+            except Exception as e:
+                print("gps: FAILED -", e, flush=True)
 
         # Ignition-key state: GPIO input, not an I2C device
         self.acc = None
@@ -245,6 +254,16 @@ class SensorManager:
                 "error": None if good else ("no A3 reading" if volts is None else "battery not connected to A3 (or out of range)"),
                 "data": volts or {},
             }
+
+        # GPS: only listed once the dongle is plugged in (or a Wi-Fi position exists), so an unplugged
+        # dongle doesn't count as a broken sensor
+        if self.gps is not None:
+            reading = self.gps.read()
+            if reading["device"] or reading["source"]:
+                found = reading["source"] is not None
+                clean["gps"] = {"status": "OK" if found else "ERROR",
+                                "error": None if found else "searching for satellites",
+                                "data": reading}
 
         # Ignition key (ACC sense)
         if self.acc is not None or self.acc_error is not None:

@@ -3,7 +3,8 @@ Sunrise / sunset (NOAA solar calculator equations, accurate to about a
 minute between the polar circles).
 
 Location comes from ~/.config/jeep_computer/weather.json ("latitude",
-"longitude"), defaulting to College Station, TX until a GPS provides it.
+"longitude"), defaulting to College Station, TX. A recent position from the GPS / Wi-Fi fallback
+(sensors/gps.py writes ~/.cache/jeep_computer/position.json) is used instead while it is under a week old.
 """
 
 import json
@@ -12,11 +13,19 @@ import time
 from pathlib import Path
 
 SETTINGS = Path.home() / ".config/jeep_computer/weather.json"
+POSITION = Path.home() / ".cache/jeep_computer/position.json"
+POSITION_MAX_AGE_S = 7 * 86400
 DEFAULT_LAT, DEFAULT_LON = 30.58222, -96.36167   # KCLL, College Station
 ZENITH = 90.833                                  # refraction + solar disc
 
 
 def location():
+    try:
+        pos = json.loads(POSITION.read_text())
+        if time.time() - float(pos["ts"]) < POSITION_MAX_AGE_S:
+            return float(pos["lat"]), float(pos["lon"])
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
     try:
         s = json.loads(SETTINGS.read_text())
         return float(s.get("latitude", DEFAULT_LAT)), float(s.get("longitude", DEFAULT_LON))
